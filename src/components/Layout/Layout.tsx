@@ -40,11 +40,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       path: '/files',
       icon: Upload,
     },
-    {
-      name: 'Configuración',
-      path: '/settings',
-      icon: Settings,
-    },
+    // {
+    //   name: 'Configuración',
+    //   path: '/settings',
+    //   icon: Settings,
+    // },
   ];
 
   const handleLogout = () => {
