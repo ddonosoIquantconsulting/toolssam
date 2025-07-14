@@ -21,6 +21,8 @@ export class UsersService {
     }
 
     const user = this.usersRepository.create(createUserDto);
+    user.password = await bcrypt.hash(createUserDto.password, 10);
+
     return this.usersRepository.save(user);
   }
 
@@ -80,9 +82,11 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    const hashedPassword = await bcrypt.hash(changePasswordDto.password, 10);
     await this.usersRepository.update(id, { password: hashedPassword });
   }
+  
+
 
   async updateLastLogin(id: string): Promise<void> {
     await this.usersRepository.update(id, { lastLogin: new Date() });

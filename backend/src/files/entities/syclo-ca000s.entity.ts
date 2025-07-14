@@ -1,13 +1,17 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
+// src/files/entities/syclo-ca000s.entity.ts
+import { 
+  Entity, 
+  PrimaryGeneratedColumn, 
+  Column, 
+  CreateDateColumn, 
+  UpdateDateColumn, 
+  Index 
 } from 'typeorm';
 
-@Entity('csv_data')
-export class CSVData {
+@Entity('syclo_ca000s')
+@Index(['company', 'version', 'objectType', 'mobileStatus'])
+@Index(['uploadId'])
+export class SycloCA000S {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -29,49 +33,40 @@ export class CSVData {
   @Column()
   recordNo: string;
 
-  @Column()
-  paramName: string;
-
-  @Column('text')
-  paramValue: string;
-
-  @Column()
-  paramGroup: string;
-
-  @Column()
-  depRecordNo: string;
+  @Column({ nullable: true })
+  objectType: string;
 
   @Column({ nullable: true })
-  paramType: string;
+  mobileStatus: string;
 
   @Column({ nullable: true })
-  paramScope: string;
+  mblstatusLabel: string;
 
   @Column({ nullable: true })
-  paramComment: string;
+  istat: string;
 
   @Column({ nullable: true })
-  active: string;
+  stsma: string;
 
   @Column({ nullable: true })
-  flagNoChange: string;
+  estat: string;
 
   @Column({ nullable: true })
-  enableRule: string;
+  statusAttr1: string;
 
   @Column({ nullable: true })
-  enableLanguVal: string;
+  statusAttr2: string;
 
   @Column({ nullable: true })
-  ruleCat: string;
+  flagInitStatus: string;
 
   @Column({ nullable: true })
-  ruleId: string;
+  flagNoUpdate: string;
 
   @Column({ nullable: true })
-  ruleInput: string;
+  flagDisabled: string;
 
-  @Column()
+  @Column({ nullable: true })
   createdBy: string;
 
   @Column({ nullable: true })
@@ -83,22 +78,13 @@ export class CSVData {
   @Column({ nullable: true })
   changedTs: string;
 
-  // ========== NUEVOS CAMPOS PARA TRACKING ==========
-  @Column({ nullable: true })
-  uploadedFileName: string;
+  // Referencia al upload
+  @Column({ type: 'uuid' })
+  uploadId: string;
 
-  @Column({ nullable: true })
-  uploadedBy: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  uploadedAt: Date;
-
-  // ========== CAMPOS DE AUDITORÍA AUTOMÁTICOS ==========
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 }
-
-

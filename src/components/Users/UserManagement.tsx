@@ -25,7 +25,9 @@ const UserManagement: React.FC = () => {
   const [newUser, setNewUser] = useState({
     email: '',
     name: '',
-    role: 'User'
+    role: 'User',
+    password: '',
+    confirmPassword: ''
   });
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
@@ -60,14 +62,32 @@ const UserManagement: React.FC = () => {
   };
 
   const handleAddUser = async () => {
-    if (!newUser.email || !newUser.name) {
+    if (!newUser.email || !newUser.name || !newUser.password) {
       alert('Por favor complete todos los campos obligatorios');
       return;
     }
 
+    if (newUser.password !== newUser.confirmPassword) {
+      alert('Las contraseñas no coinciden');
+      return;
+    }
+
+    if (newUser.password.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
     try {
-      await createUser(newUser);
-      setNewUser({ email: '', name: '', role: 'User' });
+      // Solo enviar los datos necesarios al backend
+      const userData = {
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role,
+        password: newUser.password
+      };
+      
+      await createUser(userData);
+      setNewUser({ email: '', name: '', role: 'User', password: '', confirmPassword: '' });
       setShowAddModal(false);
     } catch (error) {
       console.error('Error creating user:', error);
@@ -389,6 +409,34 @@ const UserManagement: React.FC = () => {
                   <option value="User">Usuario</option>
                   <option value="Admin">Administrador</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña *
+                </label>
+                <input
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirmar Contraseña *
+                </label>
+                <input
+                  type="password"
+                  value={newUser.confirmPassword}
+                  onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Repetir contraseña"
+                  required
+                />
               </div>
             </div>
             

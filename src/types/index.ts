@@ -1,3 +1,4 @@
+// types/index.ts
 export interface User {
   id: string;
   email: string;
@@ -5,40 +6,43 @@ export interface User {
   role: string;
   status: 'active' | 'blocked';
   lastLogin?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface CSVData {
-  COMPANY: string;
-  PRODUCT: string;
-  VERSION: string;
-  TABLE: string;
-  MANDT: string;
-  RECORD_NO: string;
-  PARAM_NAME: string;
-  PARAM_VALUE: string;
-  PARAM_GROUP: string;
-  DEP_RECORD_NO: string;
-  PARAM_TYPE: string;
-  PARAM_SCOPE: string;
-  PARAM_COMMENT: string;
-  ACTIVE: string;
-  FLAG_NO_CHANGE: string;
-  ENABLE_RULE: string;
-  ENABLE_LANGU_VAL: string;
-  RULE_CAT: string;
-  RULE_ID: string;
-  RULE_INPUT: string;
-  CREATED_BY: string;
-  CREATED_TS: string;
-  CHANGED_BY: string;
-  CHANGED_TS: string;
+export interface LoginCredentials {
+  email: string;
+  password: string;
 }
 
-export interface ComparisonResult {
-  paramName: string;
-  company1Value: string;
-  company2Value: string;
-  isDifferent: boolean;
-  table: string;
-  paramGroup: string;
+export interface LoginResponse {
+  access_token: string;
+  user: User;
+}
+
+export interface CreateUserRequest {
+  email: string;
+  name: string;
+  role: string;
+  password: string; // Solo para crear usuarios
+}
+
+export interface UpdateUserRequest {
+  email?: string;
+  name?: string;
+  role?: string;
+}
+
+export interface ChangePasswordRequest {
+  password: string;
+}
+
+// Other existing types...
+export interface FileData {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  uploadDate: string;
+  status: 'processing' | 'completed' | 'error';
 }

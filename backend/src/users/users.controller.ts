@@ -21,7 +21,7 @@ import { UserRole } from './entities/user.entity';
 
 @ApiTags('Users')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+// @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -36,9 +36,10 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @Get()
   findAll() {
+    console.log("get user");
     return this.usersService.findAll();
   }
 
@@ -76,6 +77,7 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
+    console.log("Cambiar contraseña")
     return this.usersService.changePassword(id, changePasswordDto);
   }
 

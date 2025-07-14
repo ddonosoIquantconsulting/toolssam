@@ -1,13 +1,17 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
+// src/files/entities/syclo-ca000p.entity.ts
+import { 
+  Entity, 
+  PrimaryGeneratedColumn, 
+  Column, 
+  CreateDateColumn, 
+  UpdateDateColumn, 
+  Index 
 } from 'typeorm';
 
-@Entity('csv_data')
-export class CSVData {
+@Entity('syclo_ca000p')
+@Index(['company', 'version', 'paramName', 'recordNo'])
+@Index(['uploadId'])
+export class SycloCA000P {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -29,16 +33,16 @@ export class CSVData {
   @Column()
   recordNo: string;
 
-  @Column()
+  @Column({ nullable: true })
   paramName: string;
 
-  @Column('text')
+  @Column({ nullable: true })
   paramValue: string;
 
-  @Column()
+  @Column({ nullable: true })
   paramGroup: string;
 
-  @Column()
+  @Column({ nullable: true })
   depRecordNo: string;
 
   @Column({ nullable: true })
@@ -71,7 +75,7 @@ export class CSVData {
   @Column({ nullable: true })
   ruleInput: string;
 
-  @Column()
+  @Column({ nullable: true })
   createdBy: string;
 
   @Column({ nullable: true })
@@ -83,22 +87,13 @@ export class CSVData {
   @Column({ nullable: true })
   changedTs: string;
 
-  // ========== NUEVOS CAMPOS PARA TRACKING ==========
-  @Column({ nullable: true })
-  uploadedFileName: string;
+  // Referencia al upload
+  @Column({ type: 'uuid' })
+  uploadId: string;
 
-  @Column({ nullable: true })
-  uploadedBy: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  uploadedAt: Date;
-
-  // ========== CAMPOS DE AUDITORÍA AUTOMÁTICOS ==========
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 }
-
-
