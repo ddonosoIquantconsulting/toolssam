@@ -967,7 +967,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
 
       // Recorrer registros del archivo 1
       for (const record1 of records1) {
-        const key = `${record1.ruleNo}|${record1.ruleType}|${record1.rangeSign}|${record1.rangeOption}|${record1.ruleValue}`;
+        const key = `${record1.ruleKey}|${record1.ruleNo}|${record1.ruleType}|${record1.rangeSign}|${record1.rangeOption}|${record1.ruleValue}`;
         const record2 = records2Map.get(key);
 
         if (!record2) {
