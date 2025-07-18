@@ -245,7 +245,7 @@ const FileUpload: React.FC = () => {
 
   // Función para confirmar eliminación
   const confirmDelete = (file: UploadedFile) => {
-    console.log({file})
+    
     setFileToDelete(file);
     setShowDeleteModal(true);
   };
@@ -257,8 +257,7 @@ const FileUpload: React.FC = () => {
     setDeleting(true);
     setError(null);
 
-    try {
-      console.log({fileToDelete});
+    try {      
       await apiService.deleteFileByNameAndDate(fileToDelete.fileName, fileToDelete.uploadedAt);
       
       // Remover el archivo de la lista local

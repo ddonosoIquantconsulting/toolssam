@@ -37,7 +37,7 @@ export class FilesController {
     // Obtener ID del usuario autenticado
     const userId = req?.user?.id || req?.user?.sub || 'anonymous';
     
-    // console.log({file})
+
     return this.filesService.uploadFile(file, userId);
   }
 

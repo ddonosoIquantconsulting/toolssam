@@ -9,6 +9,7 @@ import { SycloCA000S } from './entities/syclo-ca000s.entity';
 import { MfndCODO03 } from './entities/mfnd-c-odo03.entity';
 import { MfndCODO03D } from './entities/mfnd-c-odo03d.entity';
 import { SycloCA000G } from './entities/syclo-ca000g.entity';
+import { IntermediateRow } from './entities/intermediate-row.entity';
 
 
 @Module({
@@ -22,6 +23,7 @@ import { SycloCA000G } from './entities/syclo-ca000g.entity';
         MfndCODO03,
         MfndCODO03D,
         SycloCA000G,
+        IntermediateRow,
     ]),
   ],
   controllers: [FilesController],

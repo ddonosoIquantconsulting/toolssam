@@ -11,6 +11,7 @@ import { SycloCA000S } from '../files/entities/syclo-ca000s.entity';
 import { MfndCODO03 } from '../files/entities/mfnd-c-odo03.entity';
 import { MfndCODO03D } from '../files/entities/mfnd-c-odo03d.entity';
 import { SycloCA000G } from '../files/entities/syclo-ca000g.entity';
+import { IntermediateRow } from 'src/files/entities/intermediate-row.entity';
 
 @Injectable()
 export class DatabaseService implements TypeOrmOptionsFactory {
@@ -34,6 +35,7 @@ export class DatabaseService implements TypeOrmOptionsFactory {
         MfndCODO03,
         MfndCODO03D,
         SycloCA000G,
+        IntermediateRow,
       ],
       synchronize: this.configService.get('NODE_ENV') !== 'production',
       logging: this.configService.get('NODE_ENV') === 'development',

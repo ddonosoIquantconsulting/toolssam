@@ -75,11 +75,9 @@ class ApiService {
     // Interceptor para agregar el token a todas las peticiones
     this.api.interceptors.request.use(
       (config) => {
-        const token = this.getToken();
-        // console.log('Interceptor - Token encontrado:', token ? 'SÍ' : 'NO');
+        const token = this.getToken();        
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-          // console.log('Interceptor - Header agregado:', config.headers.Authorization);
+          config.headers.Authorization = `Bearer ${token}`;          
         }
         return config;
       },
@@ -110,19 +108,15 @@ class ApiService {
 
   // Métodos para manejar el token
   private getToken(): string | null {
-    const token = localStorage.getItem('authToken');
-    // console.log('getToken llamado, token encontrado:', token ? 'SÍ' : 'NO');
+    const token = localStorage.getItem('authToken');    
     return token;
   }
 
-  public setToken(token: string): void {
-    // console.log('setToken llamado con:', token);
-    localStorage.setItem('authToken', token);
-    // console.log('Token guardado en localStorage:', localStorage.getItem('authToken'));
+  public setToken(token: string): void {    
+    localStorage.setItem('authToken', token);    
   }
 
-  public removeToken(): void {
-    // console.log('removeToken llamado');
+  public removeToken(): void {    
     localStorage.removeItem('authToken');
   }
 
@@ -145,15 +139,10 @@ class ApiService {
     try {
       // NO usar makeRequest para login porque no necesita token
       const response = await this.api.post('/auth/login', credentials);
-      const data = response.data;
-      
-      // console.log('Login response:', data);
-      
+      const data = response.data;                  
       // Guardar token inmediatamente
       if (data.access_token) {
         this.setToken(data.access_token);
-        // console.log('Token guardado:', data.access_token);
-        // console.log('Token en localStorage:', localStorage.getItem('authToken'));
       } else {
         console.error('No se recibió access_token en la respuesta');
       }

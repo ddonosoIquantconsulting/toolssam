@@ -2,6 +2,151 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiService } from '../../services/api';
 
+// 🔧 PARÁMETRO PARA ALTERNAR ENTRE MOCK Y REAL
+const USE_MOCK_DATA = false; // Cambia a true para usar datos mock
+
+// 📊 MOCK DATA - Basado en tu ejemplo
+const MOCK_COMPARISON_DATA = [
+  {
+    "table": "all",
+    "totalRecords": 12,
+    "differences": 18,
+    "newInSelection1": 3,
+    "newInSelection2": 2,
+    "records": [
+      {
+        "table": "/SYCLO/CA000P",
+        "type": "different",
+        "fieldChanges": [
+          {
+            "record1": {
+              "PARAM_NAME": "WCMCatalogProfileName",
+              "PARAM_VALUE": "ZWCM",
+              "PARAM_GROUP": "CATALOGTYPE",
+              "DEP_RECORD_NO": "0000000000",
+              "PARAM_TYPE": "",
+              "PARAM_SCOPE": "",
+              "PARAM_COMMENT": "",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": "X"
+            },
+            "record2": {
+              "PARAM_NAME": "WCMCatalogProfileName",
+              "PARAM_VALUE": "ZWCM",
+              "PARAM_GROUP": "CATALOGTYPE",
+              "DEP_RECORD_NO": "0000000000",
+              "PARAM_TYPE": "",
+              "PARAM_SCOPE": "",
+              "PARAM_COMMENT": "Updated comment",
+              "ACTIVE": "",
+              "FLAG_NO_CHANGE": "X"
+            },
+            "fields": {
+              "PARAM_COMMENT": true,
+              "ACTIVE": true
+            }
+          },
+          {
+            "record1": {
+              "PARAM_NAME": "EnableMobileSync",
+              "PARAM_VALUE": "TRUE",
+              "PARAM_GROUP": "SYNC",
+              "DEP_RECORD_NO": "0000000001",
+              "PARAM_TYPE": "BOOLEAN",
+              "PARAM_SCOPE": "GLOBAL",
+              "PARAM_COMMENT": "Enable sync functionality",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": ""
+            },
+            "record2": {
+              "PARAM_NAME": "EnableMobileSync",
+              "PARAM_VALUE": "TRUE",
+              "PARAM_GROUP": "SYNC_NEW",
+              "DEP_RECORD_NO": "0000000001",
+              "PARAM_TYPE": "BOOLEAN",
+              "PARAM_SCOPE": "GLOBAL",
+              "PARAM_COMMENT": "Enable sync functionality",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": ""
+            },
+            "fields": {
+              "PARAM_GROUP": true
+            }
+          },
+          {
+            "record1": {
+              "PARAM_NAME": "MaxRetryAttempts",
+              "PARAM_VALUE": "5",
+              "PARAM_GROUP": "RETRY",
+              "DEP_RECORD_NO": "0000000002",
+              "PARAM_TYPE": "INTEGER",
+              "PARAM_SCOPE": "MODULE",
+              "PARAM_COMMENT": "Maximum retry attempts",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": ""
+            },
+            "record2": null,
+            "fields": {}
+          },
+          {
+            "record1": null,
+            "record2": {
+              "PARAM_NAME": "NewFeatureFlag",
+              "PARAM_VALUE": "ENABLED",
+              "PARAM_GROUP": "FEATURES",
+              "DEP_RECORD_NO": "0000000003",
+              "PARAM_TYPE": "STRING",
+              "PARAM_SCOPE": "GLOBAL",
+              "PARAM_COMMENT": "New feature toggle",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": ""
+            },
+            "fields": {}
+          }
+        ]
+      },
+      {
+        "table": "/SYCLO/CA000S",
+        "type": "different",
+        "fieldChanges": [
+          {
+            "record1": {
+              "OBJECT_TYPE": "ORDER",
+              "MOBILE_STATUS": "OPEN",
+              "MBLSTATUS_LABEL": "Open",
+              "ISTAT": "I0001",
+              "STSMA": "ORDEN",
+              "ESTAT": "E0001",
+              "STATUS_ATTR_1": "ATTR1",
+              "STATUS_ATTR_2": "ATTR2",
+              "FLAG_INIT_STATUS": "X",
+              "FLAG_NO_UPDATE": "",
+              "FLAG_DISABLED": ""
+            },
+            "record2": {
+              "OBJECT_TYPE": "ORDER",
+              "MOBILE_STATUS": "OPEN",
+              "MBLSTATUS_LABEL": "Open",
+              "ISTAT": "I0001",
+              "STSMA": "ORDEN",
+              "ESTAT": "E0001",
+              "STATUS_ATTR_1": "ATTR1",
+              "STATUS_ATTR_2": "ATTR2",
+              "FLAG_INIT_STATUS": "X",
+              "FLAG_NO_UPDATE": "X",
+              "FLAG_DISABLED": "X"
+            },
+            "fields": {
+              "FLAG_NO_UPDATE": true,
+              "FLAG_DISABLED": true
+            }
+          }
+        ]
+      }
+    ]
+  }
+];
+
 const Dashboard: React.FC = () => {
   // Estados para datos del historial
   const [historyData, setHistoryData] = useState<any[]>([]);
@@ -28,8 +173,18 @@ const Dashboard: React.FC = () => {
     const loadHistory = async () => {
       try {
         setLoading(true);
-        const data = await apiService.getFiles();
-        setHistoryData(data);
+        if (USE_MOCK_DATA) {
+          // Simular datos de historial para el mock
+          const mockHistory = [
+            { company: 'ACME Corp', version: '1.0', uploadedAt: '2024-01-15T10:00:00Z', fileName: 'config_v1.json', recordCount: 150, tablesProcessed: ['/SYCLO/CA000P', '/SYCLO/CA000S'] },
+            { company: 'ACME Corp', version: '1.1', uploadedAt: '2024-01-20T14:30:00Z', fileName: 'config_v1.1.json', recordCount: 175, tablesProcessed: ['/SYCLO/CA000P', '/SYCLO/CA000S', '/SYCLO/CA000G'] },
+            { company: 'Beta Inc', version: '2.0', uploadedAt: '2024-01-25T09:15:00Z', fileName: 'config_v2.json', recordCount: 200, tablesProcessed: ['/MFND/C_ODO03', '/MFND/C_ODO03D'] }
+          ];
+          setHistoryData(mockHistory);
+        } else {
+          const data = await apiService.getFiles();
+          setHistoryData(data);
+        }
       } catch (error) {
         console.error('Error loading history:', error);
       } finally {
@@ -45,7 +200,7 @@ const Dashboard: React.FC = () => {
     setSelection1Company(company);
     setSelection1Version('');
     setSelection1Date('');
-    setSelectedTable('all'); // Reset table selection
+    setSelectedTable('all');
   };
 
   const handleSelection2CompanyChange = (company: string) => {
@@ -58,7 +213,7 @@ const Dashboard: React.FC = () => {
   const handleSelection1VersionChange = (version: string) => {
     setSelection1Version(version);
     setSelection1Date('');
-    setSelectedTable('all'); // Reset table selection
+    setSelectedTable('all');
   };
 
   const handleSelection2VersionChange = (version: string) => {
@@ -72,6 +227,9 @@ const Dashboard: React.FC = () => {
     setSelectedTable('all');
   };
 
+  // Estados para controlar la expansión de secciones
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
   // Toggle table expansion
   const toggleTableExpansion = (tableName: string) => {
     const newExpanded = new Set(expandedTables);
@@ -83,10 +241,23 @@ const Dashboard: React.FC = () => {
     setExpandedTables(newExpanded);
   };
 
+  // Toggle section expansion (para Solo Sel 1, Solo Sel 2, etc.)
+  const toggleSectionExpansion = (sectionKey: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionKey)) {
+      newExpanded.delete(sectionKey);
+    } else {
+      newExpanded.add(sectionKey);
+    }
+    setExpandedSections(newExpanded);
+  };
+
   // Expand all tables when comparison data changes
   useEffect(() => {
     if (comparisonData.length > 0) {
-      const allTableNames = comparisonData.map(table => table.table);
+      const allTableNames = comparisonData.flatMap(item => 
+        item.records?.map(record => record.table) || []
+      );
       setExpandedTables(new Set(allTableNames));
     }
   }, [comparisonData]);
@@ -130,7 +301,7 @@ const Dashboard: React.FC = () => {
       }),
       fileName: item.fileName,
       recordCount: item.recordCount,
-      tablesProcessed: item.tablesProcessed || [] // Incluir las tablas procesadas
+      tablesProcessed: item.tablesProcessed || []
     }));
   }, [historyData, selection1Company, selection1Version]);
 
@@ -155,11 +326,10 @@ const Dashboard: React.FC = () => {
     }));
   }, [historyData, selection2Company, selection2Version]);
 
-  // 🎯 NUEVO: Obtener tablas disponibles directamente del historial seleccionado
+  // Obtener tablas disponibles directamente del historial seleccionado
   const availableTables = useMemo(() => {
     if (!selection1Company || !selection1Version || !selection1Date) return [];
     
-    // Buscar el registro específico seleccionado
     const selectedUpload = historyData.find(item => 
       item.company === selection1Company && 
       item.version === selection1Version && 
@@ -170,77 +340,82 @@ const Dashboard: React.FC = () => {
   }, [historyData, selection1Company, selection1Version, selection1Date]);
 
   // Execute comparison when all parameters are ready
-// Cambios necesarios en tu Dashboard.tsx
+  useEffect(() => {
+    const executeComparison = async () => {
+      if (canCompare) {
+        try {
+          setComparing(true);
 
-// 🔄 CAMBIO 1: Actualizar el useEffect de comparación
-useEffect(() => {
-  const executeComparison = async () => {
-    if (canCompare) {
-      try {
-        setComparing(true);
+          if (USE_MOCK_DATA) {
+            // Simular delay para el mock
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setComparisonData(MOCK_COMPARISON_DATA);
+          } else {
+            const selection1Upload = historyData.find(item => 
+              item.company === selection1Company && 
+              item.version === selection1Version && 
+              item.uploadedAt === selection1Date
+            );
 
-        // 🆕 Obtener fileName de cada selección
-        const selection1Upload = historyData.find(item => 
-          item.company === selection1Company && 
-          item.version === selection1Version && 
-          item.uploadedAt === selection1Date
-        );
+            const selection2Upload = historyData.find(item => 
+              item.company === selection2Company && 
+              item.version === selection2Version && 
+              item.uploadedAt === selection2Date
+            );
 
-        const selection2Upload = historyData.find(item => 
-          item.company === selection2Company && 
-          item.version === selection2Version && 
-          item.uploadedAt === selection2Date
-        );
+            if (!selection1Upload || !selection2Upload) {
+              console.error('No se encontraron los uploads seleccionados');
+              setComparisonData([]);
+              return;
+            }
 
-        if (!selection1Upload || !selection2Upload) {
-          console.error('No se encontraron los uploads seleccionados');
+            const result = await apiService.compareUploads({
+              selection1: {
+                fileName: selection1Upload.fileName,
+                uploadDate: selection1Date
+              },
+              selection2: {
+                fileName: selection2Upload.fileName,
+                uploadDate: selection2Date
+              },
+              table: selectedTable === 'all' ? 'all' : selectedTable
+            });
+
+            setComparisonData(result);
+          }
+        } catch (error) {
+          console.error('Error executing comparison:', error);
           setComparisonData([]);
-          return;
+        } finally {
+          setComparing(false);
         }
-
-        // 🆕 Llamada al nuevo endpoint
-        const result = await apiService.compareUploads({
-          selection1: {
-            fileName: selection1Upload.fileName,  // Usar filename del upload
-            uploadDate: selection1Date
-          },
-          selection2: {
-            fileName: selection2Upload.fileName,  // Usar filename del upload
-            uploadDate: selection2Date
-          },
-          table: selectedTable === 'all' ? 'all' : selectedTable
-        });
-
-        setComparisonData(result);
-      } catch (error) {
-        console.error('Error executing comparison:', error);
+      } else {
         setComparisonData([]);
-      } finally {
-        setComparing(false);
       }
-    } else {
-      setComparisonData([]);
-    }
-  };
+    };
 
-  executeComparison();
-}, [selection1Company, selection1Version, selection1Date, 
-    selection2Company, selection2Version, selection2Date, selectedTable, historyData]); // 🔄 Agregar historyData como dependencia
+    executeComparison();
+  }, [selection1Company, selection1Version, selection1Date, 
+      selection2Company, selection2Version, selection2Date, selectedTable, historyData]);
 
-  // Generate comparison summary
+  // Generate comparison summary from the new data structure
   const comparisonSummary = useMemo(() => {
     if (comparisonData.length === 0) return null;
     
-    const totals = comparisonData.reduce((acc, table) => ({
-      totalRecords: acc.totalRecords + table.totalRecords,
-      differences: acc.differences + table.differences,
-      newInSelection1: acc.newInSelection1 + table.newInSelection1,
-      newInSelection2: acc.newInSelection2 + table.newInSelection2
+    const totals = comparisonData.reduce((acc, item) => ({
+      totalRecords: acc.totalRecords + (item.totalRecords || 0),
+      differences: acc.differences + (item.differences || 0),
+      newInSelection1: acc.newInSelection1 + (item.newInSelection1 || 0),
+      newInSelection2: acc.newInSelection2 + (item.newInSelection2 || 0)
     }), { totalRecords: 0, differences: 0, newInSelection1: 0, newInSelection2: 0 });
+
+    const tablesAffected = comparisonData.reduce((acc, item) => {
+      return acc + (item.records?.length || 0);
+    }, 0);
 
     return {
       ...totals,
-      tablesAffected: comparisonData.length
+      tablesAffected
     };
   }, [comparisonData]);
 
@@ -261,9 +436,223 @@ useEffect(() => {
   // Helper function to format field names for display
   const formatFieldName = (field: string) => {
     return field
-      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-      .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
       .trim();
+  };
+
+  // Helper function to get all unique fields from a table's records
+  const getTableFields = (tableRecords: any) => {
+    if (!tableRecords.fieldChanges || tableRecords.fieldChanges.length === 0) return [];
+    
+    const fieldsSet = new Set<string>();
+    
+    tableRecords.fieldChanges.forEach((change: any) => {
+      if (change.record1) {
+        Object.keys(change.record1).forEach(field => fieldsSet.add(field));
+      }
+      if (change.record2) {
+        Object.keys(change.record2).forEach(field => fieldsSet.add(field));
+      }
+    });
+    
+    return Array.from(fieldsSet);
+  };
+
+  // Helper function to determine if a field has differences
+  const hasFieldDifference = (change: any, field: string) => {
+    return change.fields && change.fields[field] === true;
+  };
+  const organizeRecordsByType = (tableData: any) => {
+    if (!tableData.fieldChanges) return { different: [], onlySelection1: [], onlySelection2: [] };
+    
+    const different = [];
+    const onlySelection1 = [];
+    const onlySelection2 = [];
+    
+    tableData.fieldChanges.forEach((change: any) => {
+      if (change.record1 && change.record2) {
+        different.push(change);
+      } else if (change.record1 && !change.record2) {
+        onlySelection1.push(change);
+      } else if (!change.record1 && change.record2) {
+        onlySelection2.push(change);
+      }
+    });
+    
+    return { different, onlySelection1, onlySelection2 };
+  };
+
+  // Helper function to render a section of records
+  const renderRecordSection = (
+    records: any[], 
+    tableFields: string[], 
+    sectionType: 'different' | 'onlySelection1' | 'onlySelection2',
+    tableName: string
+  ) => {
+    if (records.length === 0) return null;
+    
+    const sectionKey = `${tableName}-${sectionType}`;
+    const isExpanded = expandedSections.has(sectionKey);
+    
+    const sectionConfig = {
+      different: {
+        title: 'Registros con Diferencias',
+        icon: '⚡',
+        color: 'border-red-400 bg-red-50',
+        headerColor: 'bg-red-100 hover:bg-red-200',
+        count: records.length
+      },
+      onlySelection1: {
+        title: 'Solo en Selección 1',
+        icon: '🔵',
+        color: 'border-blue-400 bg-blue-50',
+        headerColor: 'bg-blue-100 hover:bg-blue-200',
+        count: records.length
+      },
+      onlySelection2: {
+        title: 'Solo en Selección 2',
+        icon: '🟢',
+        color: 'border-green-400 bg-green-50',
+        headerColor: 'bg-green-100 hover:bg-green-200',
+        count: records.length
+      }
+    };
+    
+    const config = sectionConfig[sectionType];
+    
+    return (
+      <div className={`border rounded-lg overflow-hidden mb-4 ${config.color}`}>
+        {/* Section Header */}
+        <div 
+          className={`px-4 py-3 cursor-pointer transition-colors ${config.headerColor}`}
+          onClick={() => toggleSectionExpansion(sectionKey)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {isExpanded ? (
+                <ChevronUp className="w-4 h-4 mr-2 text-gray-600" />
+              ) : (
+                <ChevronDown className="w-4 h-4 mr-2 text-gray-600" />
+              )}
+              <span className="text-lg mr-2">{config.icon}</span>
+              <div>
+                <h4 className="font-medium text-gray-900">
+                  {config.title}
+                </h4>
+                <p className="text-sm text-gray-600">
+                  {config.count} registro{config.count !== 1 ? 's' : ''} encontrado{config.count !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              {isExpanded ? 'Contraer' : 'Expandir'}
+            </div>
+          </div>
+        </div>
+        
+        {/* Section Content */}
+        {isExpanded && (
+          <div className="overflow-x-auto bg-white">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  {tableFields.map((field, fieldIndex) => (
+                    <th key={fieldIndex} className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32">
+                      {formatFieldName(field)}
+                    </th>
+                  ))}
+                  {sectionType === 'different' && (
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Selección
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white">
+                {records.map((change, changeIndex) => (
+                  <React.Fragment key={changeIndex}>
+                    {/* Para registros diferentes, mostrar ambas filas */}
+                    {sectionType === 'different' ? (
+                      <>
+                        {/* Fila Selección 1 */}
+                        <tr className="bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-400">
+                          {tableFields.map((field, fieldIndex) => (
+                            <td key={`sel1-${fieldIndex}`} className="px-3 py-2 text-sm">
+                              <code className={`px-2 py-1 rounded text-xs font-mono break-all max-w-48 ${
+                                hasFieldDifference(change, field) 
+                                  ? 'bg-red-200 text-red-800 font-bold' 
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {change.record1[field] || '-'}
+                              </code>
+                            </td>
+                          ))}
+                          <td className="px-3 py-2">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Selección 1
+                            </span>
+                          </td>
+                        </tr>
+                        
+                        {/* Fila Selección 2 */}
+                        <tr className="bg-green-50 hover:bg-green-100 border-l-4 border-green-400">
+                          {tableFields.map((field, fieldIndex) => (
+                            <td key={`sel2-${fieldIndex}`} className="px-3 py-2 text-sm">
+                              <code className={`px-2 py-1 rounded text-xs font-mono break-all max-w-48 ${
+                                hasFieldDifference(change, field) 
+                                  ? 'bg-red-200 text-red-800 font-bold' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {change.record2[field] || '-'}
+                              </code>
+                            </td>
+                          ))}
+                          <td className="px-3 py-2">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Selección 2
+                            </span>
+                          </td>
+                        </tr>
+                      </>
+                    ) : (
+                      /* Para registros únicos, mostrar solo una fila */
+                      <tr className={`hover:opacity-80 border-l-4 ${
+                        sectionType === 'onlySelection1' 
+                          ? 'bg-blue-50 border-blue-400' 
+                          : 'bg-green-50 border-green-400'
+                      }`}>
+                        {tableFields.map((field, fieldIndex) => (
+                          <td key={`unique-${fieldIndex}`} className="px-3 py-2 text-sm">
+                            <code className={`px-2 py-1 rounded text-xs font-mono break-all max-w-48 ${
+                              sectionType === 'onlySelection1' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {sectionType === 'onlySelection1' 
+                                ? (change.record1[field] || '-')
+                                : (change.record2[field] || '-')
+                              }
+                            </code>
+                          </td>
+                        ))}
+                      </tr>
+                    )}
+                    
+                    {/* Separador entre registros */}
+                    {changeIndex < records.length - 1 && (
+                      <tr>
+                        <td colSpan={tableFields.length + (sectionType === 'different' ? 1 : 0)} className="h-2 bg-gray-100"></td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Loading state
@@ -271,7 +660,9 @@ useEffect(() => {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Cargando datos del historial...</div>
+          <div className="text-gray-500">
+            {USE_MOCK_DATA ? 'Cargando datos mock...' : 'Cargando datos del historial...'}
+          </div>
         </div>
       </div>
     );
@@ -282,6 +673,7 @@ useEffect(() => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Bienvenido a Iquant - Comparación SSAM
+          {USE_MOCK_DATA && <span className="text-sm text-blue-600 ml-2">(MODO MOCK)</span>}
         </h1>
         <p className="text-gray-600">
           Sistema de análisis y comparación de configuraciones SAP Service Asset Manager
@@ -419,7 +811,7 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Filtro de Tablas - OPTIMIZADO */}
+        {/* Filtro de Tablas */}
         <div className="border-t border-gray-200 pt-6">
           <div className="max-w-md">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -434,20 +826,20 @@ useEffect(() => {
               value={selectedTable}
               onChange={(e) => setSelectedTable(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={availableTables.length === 0}
+              disabled={!USE_MOCK_DATA && availableTables.length === 0}
             >
               <option value="all">Todas las Tablas</option>
-              {availableTables.map(table => (
+              {(USE_MOCK_DATA ? ['/SYCLO/CA000P', '/SYCLO/CA000S', '/SYCLO/CA000G'] : availableTables).map(table => (
                 <option key={table} value={table}>{table}</option>
               ))}
             </select>
-            {availableTables.length === 0 ? (
+            {!USE_MOCK_DATA && availableTables.length === 0 ? (
               <p className="text-xs text-gray-500 mt-1">
                 Completa la Selección 1 para ver las tablas disponibles
               </p>
             ) : (
               <p className="text-xs text-green-600 mt-1">
-                📊 {availableTables.join(', ')}
+                📊 {USE_MOCK_DATA ? '/SYCLO/CA000P, /SYCLO/CA000S, /SYCLO/CA000G' : availableTables.join(', ')}
               </p>
             )}
           </div>
@@ -469,7 +861,7 @@ useEffect(() => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Diferencias</p>
+                <p className="text-sm font-medium text-gray-600">Total Registros</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {comparing ? '...' : stats.total}
                 </p>
@@ -483,7 +875,7 @@ useEffect(() => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Valores Diferentes</p>
+                <p className="text-sm font-medium text-gray-600">Diferencias</p>
                 <p className="text-2xl font-bold text-red-600">
                   {comparing ? '...' : stats.differences}
                 </p>
@@ -524,7 +916,7 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Comparison Results with Dynamic Grids */}
+      {/* Comparison Results */}
       {canCompare && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-200">
@@ -550,136 +942,82 @@ useEffect(() => {
             </div>
           ) : comparisonData.length > 0 ? (
             <div className="p-6 space-y-6">
-              {comparisonData.map((tableData, tableIndex) => {
-                const isExpanded = expandedTables.has(tableData.table);
-                return (
-                  <div key={tableIndex} className="border border-gray-200 rounded-lg overflow-hidden">
-                    {/* Accordion Header */}
-                    <div 
-                      className="bg-gray-50 px-4 py-3 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200"
-                      onClick={() => toggleTableExpansion(tableData.table)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          {isExpanded ? (
-                            <ChevronUp className="w-5 h-5 mr-2 text-gray-500" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 mr-2 text-gray-500" />
-                          )}
-                          <div>
-                            <h3 className="font-medium text-gray-900">
-                              Tabla: {tableData.table}
-                            </h3>
-                            <div className="text-sm text-gray-600 mt-1">
-                              Total: {tableData.totalRecords} diferencias | 
-                              Valores diferentes: {tableData.differences} | 
-                              Nuevos en Sel. 1: {tableData.newInSelection1} | 
-                              Nuevos en Sel. 2: {tableData.newInSelection2}
+              {comparisonData.map((dataGroup, groupIndex) => (
+                <div key={groupIndex}>
+                  {dataGroup.records?.map((tableData, tableIndex) => {
+                    const isExpanded = expandedTables.has(tableData.table);
+                    const tableFields = getTableFields(tableData);
+                    
+                    return (
+                      <div key={tableIndex} className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                        {/* Accordion Header */}
+                        <div 
+                          className="bg-gray-50 px-4 py-3 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200"
+                          onClick={() => toggleTableExpansion(tableData.table)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              {isExpanded ? (
+                                <ChevronUp className="w-5 h-5 mr-2 text-gray-500" />
+                              ) : (
+                                <ChevronDown className="w-5 h-5 mr-2 text-gray-500" />
+                              )}
+                              <div>
+                                <h3 className="font-medium text-gray-900">
+                                  Tabla: {tableData.table}
+                                </h3>
+                                <div className="text-sm text-gray-600 mt-1">
+                                  {tableData.fieldChanges?.length || 0} cambios encontrados
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {isExpanded ? 'Contraer' : 'Expandir'}
                             </div>
                           </div>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {isExpanded ? 'Contraer' : 'Expandir'}
-                        </div>
+                        
+                        {/* Accordion Content - Organized by Record Type */}
+                        {isExpanded && (
+                          <div className="p-4 space-y-4">
+                            {(() => {
+                              const organizedRecords = organizeRecordsByType(tableData);
+                              
+                              return (
+                                <>
+                                  {/* Sección: Registros con Diferencias */}
+                                  {renderRecordSection(
+                                    organizedRecords.different, 
+                                    tableFields, 
+                                    'different', 
+                                    tableData.table
+                                  )}
+                                  
+                                  {/* Sección: Solo en Selección 1 */}
+                                  {renderRecordSection(
+                                    organizedRecords.onlySelection1, 
+                                    tableFields, 
+                                    'onlySelection1', 
+                                    tableData.table
+                                  )}
+                                  
+                                  {/* Sección: Solo en Selección 2 */}
+                                  {renderRecordSection(
+                                    organizedRecords.onlySelection2, 
+                                    tableFields, 
+                                    'onlySelection2', 
+                                    tableData.table
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    
-                    {/* Accordion Content - Dynamic Grid */}
-                    {isExpanded && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              {/* Dynamic columns based on table fields */}
-                              {tableData.fields && tableData.fields.map((field, fieldIndex) => (
-                                <th key={fieldIndex} className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32">
-                                  {formatFieldName(field)}
-                                </th>
-                              ))}
-                              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Tipo
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white">
-                            {tableData.records.map((record, recordIndex) => (
-                              <React.Fragment key={recordIndex}>
-                                {/* Row for Selection 1 - Blue */}
-                                <tr className="bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-400">
-                                  {tableData.fields && tableData.fields.map((field, fieldIndex) => (
-                                    <td key={`sel1-${fieldIndex}`} className="px-3 py-2 text-sm" 
-                                        rowSpan={record.type === 'different' ? 2 : 1}>
-                                      <div className="flex flex-col space-y-1">
-                                        <code className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-mono break-all max-w-48">
-                                          {record.type === 'different' 
-                                            ? (record[`${field}_sel1`] || '-')
-                                            : record.type === 'new_in_selection1' 
-                                              ? (record[field] || '-')
-                                              : '(No existe)'
-                                          }
-                                        </code>
-                                      </div>
-                                    </td>
-                                  ))}
-                                  <td className="px-3 py-2" rowSpan={record.type === 'different' ? 2 : 1}>
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      record.type === 'different' ? 'bg-red-100 text-red-800' :
-                                      record.type === 'new_in_selection1' ? 'bg-blue-100 text-blue-800' :
-                                      'bg-green-100 text-green-800'
-                                    }`}>
-                                      {record.type === 'different' ? 'Diferente' :
-                                       record.type === 'new_in_selection1' ? 'Nuevo Sel. 1' :
-                                       'Nuevo Sel. 2'}
-                                    </span>
-                                  </td>
-                                </tr>
-                                
-                                {/* Row for Selection 2 - Green (only for different values) */}
-                                {record.type === 'different' && (
-                                  <tr className="bg-green-50 hover:bg-green-100 border-l-4 border-green-400 border-b border-gray-200">
-                                    {tableData.fields && tableData.fields.map((field, fieldIndex) => (
-                                      <td key={`sel2-${fieldIndex}`} className="px-3 py-2 text-sm">
-                                        <div className="flex flex-col space-y-1">
-                                          <code className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-mono break-all max-w-48">
-                                            {record[`${field}_sel2`] || '-'}
-                                          </code>
-                                        </div>
-                                      </td>
-                                    ))}
-                                  </tr>
-                                )}
-
-                                {/* For new records in selection 2, show complete green row */}
-                                {record.type === 'new_in_selection2' && (
-                                  <tr className="bg-green-50 hover:bg-green-100 border-l-4 border-green-400 border-b border-gray-200">
-                                    {tableData.fields && tableData.fields.map((field, fieldIndex) => (
-                                      <td key={`new-sel2-${fieldIndex}`} className="px-3 py-2 text-sm">
-                                        <div className="flex flex-col space-y-1">
-                                          <code className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-mono break-all max-w-48">
-                                            {record[field] || '-'}
-                                          </code>
-                                        </div>
-                                      </td>
-                                    ))}
-                                    <td className="px-3 py-2"></td>
-                                  </tr>
-                                )}
-
-                                {/* Add separator between records for better readability */}
-                                {recordIndex < tableData.records.length - 1 && (
-                                  <tr>
-                                    <td colSpan={tableData.fields ? tableData.fields.length + 1 : 1} className="h-2 bg-gray-100"></td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="p-8 text-center">

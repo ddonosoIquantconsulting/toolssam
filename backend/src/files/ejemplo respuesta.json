@@ -1,0 +1,386 @@
+[
+  {
+    "table": "all",
+    "totalRecords": 12,
+    "differences": 18,
+    "newInSelection1": 3,
+    "newInSelection2": 2,
+    "records": [
+      {
+        "table": "/SYCLO/CA000P",
+        "type": "different",
+        "fieldChanges": [
+          {
+            "record1": {
+              "PARAM_NAME": "WCMCatalogProfileName",
+              "PARAM_VALUE": "ZWCM",
+              "PARAM_GROUP": "CATALOGTYPE",
+              "DEP_RECORD_NO": "0000000000",
+              "PARAM_TYPE": "",
+              "PARAM_SCOPE": "",
+              "PARAM_COMMENT": "",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": "X"
+            },
+            "record2": {
+              "PARAM_NAME": "WCMCatalogProfileName",
+              "PARAM_VALUE": "ZWCM",
+              "PARAM_GROUP": "CATALOGTYPE",
+              "DEP_RECORD_NO": "0000000000",
+              "PARAM_TYPE": "",
+              "PARAM_SCOPE": "",
+              "PARAM_COMMENT": "Updated comment",
+              "ACTIVE": "",
+              "FLAG_NO_CHANGE": "X"
+            },
+            "fields": {
+              "PARAM_COMMENT": true,
+              "ACTIVE": true
+            }
+          },
+          {
+            "record1": {
+              "PARAM_NAME": "EnableMobileSync",
+              "PARAM_VALUE": "TRUE",
+              "PARAM_GROUP": "SYNC",
+              "DEP_RECORD_NO": "0000000001",
+              "PARAM_TYPE": "BOOLEAN",
+              "PARAM_SCOPE": "GLOBAL",
+              "PARAM_COMMENT": "Enable sync functionality",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": ""
+            },
+            "record2": {
+              "PARAM_NAME": "EnableMobileSync",
+              "PARAM_VALUE": "TRUE",
+              "PARAM_GROUP": "SYNC_NEW",
+              "DEP_RECORD_NO": "0000000001",
+              "PARAM_TYPE": "BOOLEAN",
+              "PARAM_SCOPE": "GLOBAL",
+              "PARAM_COMMENT": "Enable sync functionality",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": ""
+            },
+            "fields": {
+              "PARAM_GROUP": true
+            }
+          },
+          {
+            "record1": {
+              "PARAM_NAME": "MaxRetryAttempts",
+              "PARAM_VALUE": "5",
+              "PARAM_GROUP": "RETRY",
+              "DEP_RECORD_NO": "0000000002",
+              "PARAM_TYPE": "INTEGER",
+              "PARAM_SCOPE": "MODULE",
+              "PARAM_COMMENT": "Maximum retry attempts",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": ""
+            },
+            "record2": null,
+            "fields": {}
+          },
+          {
+            "record1": null,
+            "record2": {
+              "PARAM_NAME": "NewFeatureFlag",
+              "PARAM_VALUE": "ENABLED",
+              "PARAM_GROUP": "FEATURES",
+              "DEP_RECORD_NO": "0000000003",
+              "PARAM_TYPE": "STRING",
+              "PARAM_SCOPE": "GLOBAL",
+              "PARAM_COMMENT": "New feature toggle",
+              "ACTIVE": "X",
+              "FLAG_NO_CHANGE": ""
+            },
+            "fields": {}
+          }
+        ]
+      },
+      {
+        "table": "/SYCLO/CA000S",
+        "type": "different",
+        "fieldChanges": [
+          {
+            "record1": {
+              "OBJECT_TYPE": "ORDER",
+              "MOBILE_STATUS": "OPEN",
+              "MBLSTATUS_LABEL": "Open",
+              "ISTAT": "I0001",
+              "STSMA": "ORDEN",
+              "ESTAT": "E0001",
+              "STATUS_ATTR_1": "ATTR1",
+              "STATUS_ATTR_2": "ATTR2",
+              "FLAG_INIT_STATUS": "X",
+              "FLAG_NO_UPDATE": "",
+              "FLAG_DISABLED": ""
+            },
+            "record2": {
+              "OBJECT_TYPE": "ORDER",
+              "MOBILE_STATUS": "OPEN",
+              "MBLSTATUS_LABEL": "Open",
+              "ISTAT": "I0001",
+              "STSMA": "ORDEN",
+              "ESTAT": "E0001",
+              "STATUS_ATTR_1": "ATTR1",
+              "STATUS_ATTR_2": "ATTR2",
+              "FLAG_INIT_STATUS": "X",
+              "FLAG_NO_UPDATE": "X",
+              "FLAG_DISABLED": "X"
+            },
+            "fields": {
+              "FLAG_NO_UPDATE": true,
+              "FLAG_DISABLED": true
+            }
+          },
+          {
+            "record1": {
+              "OBJECT_TYPE": "OPERATION",
+              "MOBILE_STATUS": "PENDING",
+              "MBLSTATUS_LABEL": "Pending Review",
+              "ISTAT": "I0002",
+              "STSMA": "OPERATION",
+              "ESTAT": "E0002",
+              "STATUS_ATTR_1": "PENDING",
+              "STATUS_ATTR_2": "REVIEW",
+              "FLAG_INIT_STATUS": "",
+              "FLAG_NO_UPDATE": "X",
+              "FLAG_DISABLED": ""
+            },
+            "record2": {
+              "OBJECT_TYPE": "OPERATION",
+              "MOBILE_STATUS": "PENDING",
+              "MBLSTATUS_LABEL": "Pending Review",
+              "ISTAT": "I0002",
+              "STSMA": "OPERATION",
+              "ESTAT": "E0002",
+              "STATUS_ATTR_1": "PENDING",
+              "STATUS_ATTR_2": "REVIEW",
+              "FLAG_INIT_STATUS": "X",
+              "FLAG_NO_UPDATE": "X",
+              "FLAG_DISABLED": ""
+            },
+            "fields": {
+              "FLAG_INIT_STATUS": true
+            }
+          }
+        ]
+      },
+      {
+        "table": "/SYCLO/CA000G",
+        "type": "different",
+        "fieldChanges": [
+          {
+            "record1": {
+              "ROOT_OBJTYP": "ORDER",
+              "ROOT_OBJKEY": "ORDER001",
+              "CHILD_OBJTYP": "OPERATION",
+              "CHILD_OBJKEY": "OP001",
+              "ACTIVE": "X",
+              "IN_SCOPE": ""
+            },
+            "record2": {
+              "ROOT_OBJTYP": "ORDER",
+              "ROOT_OBJKEY": "ORDER001",
+              "CHILD_OBJTYP": "OPERATION",
+              "CHILD_OBJKEY": "OP001",
+              "ACTIVE": "X",
+              "IN_SCOPE": "X"
+            },
+            "fields": {
+              "IN_SCOPE": true
+            }
+          },
+          {
+            "record1": {
+              "ROOT_OBJTYP": "PROJECT",
+              "ROOT_OBJKEY": "PROJ001",
+              "CHILD_OBJTYP": "TASK",
+              "CHILD_OBJKEY": "TASK001",
+              "ACTIVE": "X",
+              "IN_SCOPE": "X"
+            },
+            "record2": {
+              "ROOT_OBJTYP": "PROJECT",
+              "ROOT_OBJKEY": "PROJ001",
+              "CHILD_OBJTYP": "TASK",
+              "CHILD_OBJKEY": "TASK001",
+              "ACTIVE": "",
+              "IN_SCOPE": ""
+            },
+            "fields": {
+              "ACTIVE": true,
+              "IN_SCOPE": true
+            }
+          },
+          {
+            "record1": {
+              "ROOT_OBJTYP": "LEGACY",
+              "ROOT_OBJKEY": "LEG001",
+              "CHILD_OBJTYP": "SUBTASK",
+              "CHILD_OBJKEY": "SUB001",
+              "ACTIVE": "X",
+              "IN_SCOPE": "X"
+            },
+            "record2": null,
+            "fields": {}
+          }
+        ]
+      },
+      {
+        "table": "/MFND/C_ODO03",
+        "type": "different",
+        "fieldChanges": [
+          {
+            "record1": {
+              "RULE_NO": "001",
+              "RULE_TYPE": "VALIDATION",
+              "RANGE_SIGN": "EQ",
+              "RANGE_OPTION": "BT",
+              "RULE_VALUE": "VALUE1",
+              "RULE_VALUE_1": "OLDVALUE",
+              "ACTIVE": "X",
+              "MOBILE_APP": "WORKMANAGER",
+              "OWNER_OBJECT": "ORDER"
+            },
+            "record2": {
+              "RULE_NO": "001",
+              "RULE_TYPE": "VALIDATION",
+              "RANGE_SIGN": "EQ",
+              "RANGE_OPTION": "BT",
+              "RULE_VALUE": "VALUE1",
+              "RULE_VALUE_1": "NEWVALUE",
+              "ACTIVE": "X",
+              "MOBILE_APP": "FIELDSERVICE",
+              "OWNER_OBJECT": "ORDER"
+            },
+            "fields": {
+              "RULE_VALUE_1": true,
+              "MOBILE_APP": true
+            }
+          },
+          {
+            "record1": {
+              "RULE_NO": "002",
+              "RULE_TYPE": "CONSTRAINT",
+              "RANGE_SIGN": "NE",
+              "RANGE_OPTION": "EQ",
+              "RULE_VALUE": "RESTRICT",
+              "RULE_VALUE_1": "MAX_LIMIT",
+              "ACTIVE": "X",
+              "MOBILE_APP": "WORKMANAGER",
+              "OWNER_OBJECT": "OPERATION"
+            },
+            "record2": {
+              "RULE_NO": "002",
+              "RULE_TYPE": "CONSTRAINT",
+              "RANGE_SIGN": "NE",
+              "RANGE_OPTION": "EQ",
+              "RULE_VALUE": "RESTRICT",
+              "RULE_VALUE_1": "MAX_LIMIT",
+              "ACTIVE": "",
+              "MOBILE_APP": "WORKMANAGER",
+              "OWNER_OBJECT": "TASK"
+            },
+            "fields": {
+              "ACTIVE": true,
+              "OWNER_OBJECT": true
+            }
+          },
+          {
+            "record1": null,
+            "record2": {
+              "RULE_NO": "003",
+              "RULE_TYPE": "PERMISSION",
+              "RANGE_SIGN": "CP",
+              "RANGE_OPTION": "NB",
+              "RULE_VALUE": "ADMIN",
+              "RULE_VALUE_1": "FULL_ACCESS",
+              "ACTIVE": "X",
+              "MOBILE_APP": "FIELDSERVICE",
+              "OWNER_OBJECT": "USER"
+            },
+            "fields": {}
+          }
+        ]
+      },
+      {
+        "table": "/MFND/C_ODO03D",
+        "type": "different",
+        "fieldChanges": [
+          {
+            "record1": {
+              "RULE_KEY": "KEY001",
+              "ACTIVE": "X",
+              "MOBILE_APP": "WORKMANAGER",
+              "OWNER_OBJECT": "ORDER",
+              "RULE_TYPE": "DROPDOWN",
+              "RULE_VALUE": "STATUS_LIST",
+              "RULE_VALUE1": "OPEN,CLOSED,PENDING",
+              "RULE_VALUE2": "DEFAULT:OPEN",
+              "RULE_VALUE3": "MANDATORY:Y"
+            },
+            "record2": {
+              "RULE_KEY": "KEY001",
+              "ACTIVE": "X",
+              "MOBILE_APP": "WORKMANAGER",
+              "OWNER_OBJECT": "ORDER",
+              "RULE_TYPE": "DROPDOWN",
+              "RULE_VALUE": "STATUS_LIST_V2",
+              "RULE_VALUE1": "OPEN,CLOSED,PENDING,IN_PROGRESS",
+              "RULE_VALUE2": "DEFAULT:PENDING",
+              "RULE_VALUE3": "MANDATORY:Y"
+            },
+            "fields": {
+              "RULE_VALUE": true,
+              "RULE_VALUE1": true,
+              "RULE_VALUE2": true
+            }
+          },
+          {
+            "record1": {
+              "RULE_KEY": "KEY002",
+              "ACTIVE": "X",
+              "MOBILE_APP": "FIELDSERVICE",
+              "OWNER_OBJECT": "OPERATION",
+              "RULE_TYPE": "LOOKUP",
+              "RULE_VALUE": "TECHNICIAN_LIST",
+              "RULE_VALUE1": "SELECT * FROM TECH",
+              "RULE_VALUE2": "FILTER:ACTIVE=X",
+              "RULE_VALUE3": "ORDER:NAME"
+            },
+            "record2": {
+              "RULE_KEY": "KEY002",
+              "ACTIVE": "X",
+              "MOBILE_APP": "FIELDSERVICE",
+              "OWNER_OBJECT": "OPERATION",
+              "RULE_TYPE": "LOOKUP",
+              "RULE_VALUE": "TECHNICIAN_LIST",
+              "RULE_VALUE1": "SELECT * FROM TECH",
+              "RULE_VALUE2": "FILTER:ACTIVE=X",
+              "RULE_VALUE3": "ORDER:SKILL,NAME"
+            },
+            "fields": {
+              "RULE_VALUE3": true
+            }
+          },
+          {
+            "record1": {
+              "RULE_KEY": "DEPRECATED_KEY",
+              "ACTIVE": "",
+              "MOBILE_APP": "LEGACY",
+              "OWNER_OBJECT": "OLD_OBJECT",
+              "RULE_TYPE": "OBSOLETE",
+              "RULE_VALUE": "OLD_RULE",
+              "RULE_VALUE1": "",
+              "RULE_VALUE2": "",
+              "RULE_VALUE3": ""
+            },
+            "record2": null,
+            "fields": {}
+          }
+        ]
+      }
+    ]
+  }
+]

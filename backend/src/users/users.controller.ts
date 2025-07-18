@@ -39,7 +39,7 @@ export class UsersController {
   // @Roles(UserRole.ADMIN)
   @Get()
   findAll() {
-    console.log("get user");
+    
     return this.usersService.findAll();
   }
 
@@ -76,8 +76,7 @@ export class UsersController {
   changePassword(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() changePasswordDto: ChangePasswordDto,
-  ) {
-    console.log("Cambiar contraseña")
+  ) {    
     return this.usersService.changePassword(id, changePasswordDto);
   }
 

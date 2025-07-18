@@ -14,6 +14,9 @@ import { SycloCA000G } from './entities/syclo-ca000g.entity';
 import * as XLSX from 'xlsx';
 import * as csv from 'csv-parser';
 import { Readable } from 'stream';
+import { IntermediateRow } from './entities/intermediate-row.entity';
+
+
 
 @Injectable()
 export class FilesService {
@@ -30,288 +33,478 @@ export class FilesService {
     private mfndCODO03DRepository: Repository<MfndCODO03D>,
     @InjectRepository(SycloCA000G)
     private sycloCA000GRepository: Repository<SycloCA000G>,
+    @InjectRepository(IntermediateRow)
+    private intermediateRowRepository: Repository<IntermediateRow>,
   ) {}
 
-  // Mapeo de repositorios por nombre de tabla
-  private getRepositoryForTable(tableName: string): Repository<any> {
-    const repositoryMap = {
-      '/SYCLO/CA000P': this.sycloCA000PRepository,
-      '/SYCLO/CA000S': this.sycloCA000SRepository,
-      '/MFND/C_ODO03': this.mfndCODO03Repository,
-      '/MFND/C_ODO03D': this.mfndCODO03DRepository,
-      '/SYCLO/CA000G': this.sycloCA000GRepository,
-    };
+ // 🔧 Parser CSV manual - SIN usar csv-parser
+private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: string[], separator: string }> {
+  try {
+    const csvContent = buffer.toString();
+    const originalLines = csvContent.split('\n').filter(line => line.trim() !== '');
 
-    const repository = repositoryMap[tableName];
-    if (!repository) {
-      throw new Error(`No repository found for table: ${tableName}`);
+    if (originalLines.length === 0) {
+      throw new Error('No lines found in CSV');
     }
-    return repository;
+    
+    // Detectar separador
+    const firstLine = originalLines[0];
+    let separator = ',';
+    
+    if (firstLine.includes(';') && firstLine.split(';').length > firstLine.split(',').length) {
+      separator = ';';
+    }
+    // Obtener headers de la primera línea
+    const headers = firstLine.split(separator).map(h => h.trim().replace(/^"(.*)"$/, '$1'));
+    // Procesar líneas de datos (desde línea 1 en adelante)
+    const data: any[] = [];
+    
+    for (let i = 0; i < originalLines.length; i++) {
+      const line = originalLines[i].trim();
+      if (!line) continue; // Skip empty lines
+      // Dividir línea por separador
+      const values = line.split(separator).map(v => v.trim().replace(/^"(.*)"$/, '$1'));
+      // Crear objeto con headers como keys
+      const rowObject: any = {};
+      headers.forEach((header, index) => {
+        rowObject[header] = values[index] || '';
+      });
+      
+        data.push(rowObject);
+  
+    }
+    return { data, originalLines, separator };
+    
+  } catch (error) {
+    console.error('❌ Manual CSV parsing error:', error);
+    throw new BadRequestException(`Error parsing CSV: ${error.message}`);
+  }
+}
+
+ // 🔍 Función para parsear content_linea de MfndCODO03D
+  private parseMfndCODO03DLine(contentLinea: string, uploadId: string): MfndCODO03D {
+    // Formato esperado para MFND/C_ODO03D
+    const fields = contentLinea.split(',');
+    
+    if (fields.length < 4) {
+      throw new Error(`Invalid MfndCODO03D line format: ${contentLinea}`);
+    }
+
+    const mfndEntity = new MfndCODO03D();
+    
+    // Mapear campos según el orden en el CSV
+    mfndEntity.company = fields[0] || '';
+    mfndEntity.product = fields[1] || '';
+    mfndEntity.version = fields[2] || '';
+    mfndEntity.table = fields[3] || '';
+    mfndEntity.mandt = fields[4] || '';
+    mfndEntity.ruleKey = fields[5] || null;
+    mfndEntity.active = fields[6] || null;
+    mfndEntity.mobileApp = fields[7] || null;
+    mfndEntity.ownerObject = fields[8] || null;
+    mfndEntity.createdBy = fields[9] || null;
+    mfndEntity.createdTs = fields[10] || null;
+    mfndEntity.changedBy = fields[11] || null;
+    mfndEntity.changedTs = fields[12] || null;
+    mfndEntity.ruleType = fields[13] || null;
+    mfndEntity.ruleValue = fields[14] || null;
+    mfndEntity.ruleValue1 = fields[15] || null;
+    mfndEntity.ruleValue2 = fields[16] || null;
+    mfndEntity.ruleValue3 = fields[17] || null;
+    mfndEntity.uploadId = uploadId;
+
+    return mfndEntity;
   }
 
-  // Lista de tablas soportadas
-  private getSupportedTables(): string[] {
-    return [
-      '/SYCLO/CA000P',
-      '/SYCLO/CA000S',
-      '/MFND/C_ODO03',
-      '/MFND/C_ODO03D',
-      '/SYCLO/CA000G',
-    ];
+// 🔍 Función para parsear content_linea de MfndCODO03
+  private parseMfndCODO03Line(contentLinea: string, uploadId: string): MfndCODO03 {
+    // Formato esperado para MFND/C_ODO03
+    const fields = contentLinea.split(',');
+    
+    if (fields.length < 4) {
+      throw new Error(`Invalid MfndCODO03 line format: ${contentLinea}`);
+    }
+
+    const mfndEntity = new MfndCODO03();
+    
+    // Mapear campos según el orden en el CSV
+    mfndEntity.company = fields[0] || '';
+    mfndEntity.product = fields[1] || '';
+    mfndEntity.version = fields[2] || '';
+    mfndEntity.table = fields[3] || '';
+    mfndEntity.mandt = fields[4] || '';
+    mfndEntity.ruleKey = fields[5] || null;
+    mfndEntity.ruleNo = fields[6] || null;
+    mfndEntity.ruleType = fields[7] || null;
+    mfndEntity.rangeSign = fields[8] || null;
+    mfndEntity.rangeOption = fields[9] || null;
+    mfndEntity.ruleValue = fields[10] || null;
+    mfndEntity.ruleValue1 = fields[11] || null;
+    mfndEntity.active = fields[12] || null;
+    mfndEntity.ownerObject = fields[13] || null;
+    mfndEntity.createdBy = fields[14] || null;
+    mfndEntity.createdTs = fields[15] || null;
+    mfndEntity.changedBy = fields[16] || null;
+    mfndEntity.changedTs = fields[17] || null;
+    mfndEntity.uploadId = uploadId;
+
+    return mfndEntity;
   }
 
-  // Verificar si una tabla es soportada
-  private isTableSupported(tableName: string): boolean {
-    return this.getSupportedTables().includes(tableName);
+
+ // 🔍 Función para parsear content_linea de SycloCA000G
+  private parseSycloCA000GLine(contentLinea: string, uploadId: string): SycloCA000G {
+    // Formato esperado similar a otras tablas Syclo pero con campos específicos de CA000G
+    const fields = contentLinea.split(',');
+    
+    if (fields.length < 4) {
+      throw new Error(`Invalid SycloCA000G line format: ${contentLinea}`);
+    }
+
+    const sycloEntity = new SycloCA000G();
+    
+    // Mapear campos según el orden en el CSV
+    sycloEntity.company = fields[0] || '';
+    sycloEntity.product = fields[1] || '';
+    sycloEntity.version = fields[2] || '';
+    sycloEntity.table = fields[3] || '';
+    sycloEntity.mandt = fields[4] || '';
+    sycloEntity.mobileApp = fields[5] || null;
+    sycloEntity.assignmentNo = fields[6] || null;
+    sycloEntity.rootObjtyp = fields[7] || null;
+    sycloEntity.rootObjkey = fields[8] || null;
+    sycloEntity.childObjtyp = fields[9] || null;
+    sycloEntity.childObjkey = fields[10] || null;
+    sycloEntity.active = fields[11] || null;
+    sycloEntity.inScope = fields[12] || null;
+    sycloEntity.createdBy = fields[13] || null;
+    sycloEntity.createdTs = fields[14] || null;
+    sycloEntity.changedBy = fields[15] || null;
+    sycloEntity.changedTs = fields[16] || null;
+    sycloEntity.ruleValue3 = fields[17] || null;
+    sycloEntity.uploadId = uploadId;
+
+    return sycloEntity;
   }
 
-  // Mapear fila CSV a entidad específica
-  private mapCsvRowToEntity(row: any, tableName: string, uploadId: string): any {
-    const baseFields = {
-      company: row.COMPANY || '',
-      product: row.PRODUCT || '',
-      version: row.VERSION || '',
-      table: row.TABLE || '',
-      mandt: row.MANDT || '',
-      uploadId: uploadId,
-      createdBy: row.CREATED_BY || '',
-      createdTs: row.CREATED_TS || '',
-      changedBy: row.CHANGED_BY || '',
-      changedTs: row.CHANGED_TS || '',
-    };
+ // 🔍 Función para parsear content_linea de SycloCA000S
+  private parseSycloCA000SLine(contentLinea: string, uploadId: string): SycloCA000S {
+    // Formato esperado similar a CA000P pero con campos específicos de CA000S
+    const fields = contentLinea.split(',');
+    
+    if (fields.length < 4) {
+      throw new Error(`Invalid SycloCA000S line format: ${contentLinea}`);
+    }
 
-    switch (tableName) {
-      case '/SYCLO/CA000P':
-        return {
-          ...baseFields,
-          recordNo: row.RECORD_NO || '',
-          paramName: row.PARAM_NAME || '',
-          paramValue: row.PARAM_VALUE || '',
-          paramGroup: row.PARAM_GROUP || '',
-          depRecordNo: row.DEP_RECORD_NO || '',
-          paramType: row.PARAM_TYPE || '',
-          paramScope: row.PARAM_SCOPE || '',
-          paramComment: row.PARAM_COMMENT || '',
-          active: row.ACTIVE || '',
-          flagNoChange: row.FLAG_NO_CHANGE || '',
-          enableRule: row.ENABLE_RULE || '',
-          enableLanguVal: row.ENABLE_LANGU_VAL || '',
-          ruleCat: row.RULE_CAT || '',
-          ruleId: row.RULE_ID || '',
-          ruleInput: row.RULE_INPUT || '',
-        };
+    const sycloEntity = new SycloCA000S();
+    
+    // Mapear campos según el orden en el CSV
+    sycloEntity.company = fields[0] || '';
+    sycloEntity.product = fields[1] || '';
+    sycloEntity.version = fields[2] || '';
+    sycloEntity.table = fields[3] || '';
+    sycloEntity.mandt = fields[4] || '';
+    sycloEntity.recordNo = fields[5] || '';
+    sycloEntity.objectType = fields[6] || null;
+    sycloEntity.mobileStatus = fields[7] || null;
+    sycloEntity.mblstatusLabel = fields[8] || null;
+    sycloEntity.istat = fields[9] || null;
+    sycloEntity.stsma = fields[10] || null;
+    sycloEntity.estat = fields[11] || null;
+    sycloEntity.statusAttr1 = fields[12] || null;
+    sycloEntity.statusAttr2 = fields[13] || null;
+    sycloEntity.flagInitStatus = fields[14] || null;
+    sycloEntity.flagNoUpdate = fields[15] || null;
+    sycloEntity.flagDisabled = fields[16] || null;
+    sycloEntity.createdBy = fields[17] || null;
+    sycloEntity.createdTs = fields[18] || null;
+    sycloEntity.changedBy = fields[19] || null;
+    sycloEntity.changedTs = fields[20] || null;
+    sycloEntity.uploadId = uploadId;
 
-      case '/SYCLO/CA000S':
-        return {
-          ...baseFields,
-          recordNo: row.RECORD_NO || '',
-          objectType: row.OBJECT_TYPE || '',
-          mobileStatus: row.MOBILE_STATUS || '',
-          mblstatusLabel: row.MBLSTATUS_LABEL || '',
-          istat: row.ISTAT || '',
-          stsma: row.STSMA || '',
-          estat: row.ESTAT || '',
-          statusAttr1: row.STATUS_ATTR_1 || '',
-          statusAttr2: row.STATUS_ATTR_2 || '',
-          flagInitStatus: row.FLAG_INIT_STATUS || '',
-          flagNoUpdate: row.FLAG_NO_UPDATE || '',
-          flagDisabled: row.FLAG_DISABLED || '',
-        };
+    return sycloEntity;
+  }
 
-      case '/MFND/C_ODO03':
-        return {
-          ...baseFields,
-          ruleKey: row.RULE_KEY || '',
-          ruleNo: row.RULE_NO || '',
-          ruleType: row.RULE_TYPE || '',
-          rangeSign: row.RANGE_SIGN || '',
-          rangeOption: row.RANGE_OPTION || '',
-          ruleValue: row.RULE_VALUE || '',
-          ruleValue1: row.RULE_VALUE_1 || '',
-          active: row.ACTIVE || '',
-          ownerObject: row.OWNER_OBJECT || '',
-        };
+ // 🔍 Función para parsear content_linea de SycloCA000P
+  private parseSycloCA000PLine(contentLinea: string, uploadId: string): SycloCA000P {
+    // Formato esperado: CMP,SAP_SERVICE_ASSET_MANAGER,2410,/SYCLO/CA000P,100,0000000284,WCMCatalogProfileName,ZWCM,CATALOGTYPE,0000000000,,,,X,X,,,,,,SOLTESZI,,SOLTESZI,
+    const fields = contentLinea.split(',');
+    
+    if (fields.length < 4) {
+      throw new Error(`Invalid SycloCA000P line format: ${contentLinea}`);
+    }
 
-      case '/MFND/C_ODO03D':
-        return {
-          ...baseFields,
-          ruleKey: row.RULE_KEY || '',
-          active: row.ACTIVE || '',
-          mobileApp: row.MOBILE_APP || '',
-          ownerObject: row.OWNER_OBJECT || '',
-          ruleType: row.RULE_TYPE || '',
-          ruleValue: row.RULE_VALUE || '',
-          ruleValue1: row.RULE_VALUE1 || '',
-          ruleValue2: row.RULE_VALUE2 || '',
-          ruleValue3: row.RULE_VALUE3 || '',
-        };
+    const sycloEntity = new SycloCA000P();
+    
+    // Mapear campos según el orden en el CSV
+    sycloEntity.company = fields[0] || '';
+    sycloEntity.product = fields[1] || '';
+    sycloEntity.version = fields[2] || '';
+    sycloEntity.table = fields[3] || '';
+    sycloEntity.mandt = fields[4] || '';
+    sycloEntity.recordNo = fields[5] || '';
+    sycloEntity.paramName = fields[6] || null;
+    sycloEntity.paramValue = fields[7] || null;
+    sycloEntity.paramGroup = fields[8] || null;
+    sycloEntity.depRecordNo = fields[9] || null;
+    sycloEntity.paramType = fields[10] || null;
+    sycloEntity.paramScope = fields[11] || null;
+    sycloEntity.paramComment = fields[12] || null;
+    sycloEntity.active = fields[13] || null;
+    sycloEntity.flagNoChange = fields[14] || null;
+    sycloEntity.enableRule = fields[15] || null;
+    sycloEntity.enableLanguVal = fields[16] || null;
+    sycloEntity.ruleCat = fields[17] || null;
+    sycloEntity.ruleId = fields[18] || null;
+    sycloEntity.ruleInput = fields[19] || null;
+    sycloEntity.createdBy = fields[20] || null;
+    sycloEntity.createdTs = fields[21] || null;
+    sycloEntity.changedBy = fields[22] || null;
+    sycloEntity.changedTs = fields[23] || null;
+    sycloEntity.uploadId = uploadId;
 
-      case '/SYCLO/CA000G':
-        return {
-          ...baseFields,
-          mobileApp: row.MOBILE_APP || '',
-          assignmentNo: row.ASSIGNMENT_NO || '',
-          rootObjtyp: row.ROOT_OBJTYP || '',
-          rootObjkey: row.ROOT_OBJKEY || '',
-          childObjtyp: row.CHILD_OBJTYP || '',
-          childObjkey: row.CHILD_OBJKEY || '',
-          active: row.ACTIVE || '',
-          inScope: row.IN_SCOPE || '',
-          ruleValue3: row.RULE_VALUE3 || '',
-        };
+    return sycloEntity;
+  }
 
-      default:
-        throw new Error(`Unknown table mapping for: ${tableName}`);
+// 🎯 Función unificada para procesar IntermediateRows y crear registros en todas las tablas
+  private async processIntermediateToAllTables(uploadId: string): Promise<number> {
+    try {
+      // // Obtener todos los IntermediateRow que corresponden a todas las tablas procesables
+      // const intermediateRows = await this.intermediateRowRepository.find({
+      //   where: [
+      //     // Tablas Syclo
+      //     { table: '/SYCLO/CA000P' },
+      //     { table: '/SYCLO/YCA000P' },
+      //     { table: '/SYCLO/CA000S' },
+      //     { table: '/SYCLO/YCA000S' },
+      //     { table: '/SYCLO/CA000G' },
+      //     { table: '/SYCLO/YCA000G' },
+      //     // Tablas MFND
+      //     { table: '/MFND/C_ODO03' },
+      //     { table: '/MFND/YC_ODO03' },
+      //     { table: '/MFND/C_ODO03D' },
+      //     { table: '/MFND/YC_ODO03D' },
+      //     { uploadId: uploadId } , // referencia a la subida
+      //   ]
+      // });
+      const intermediateRows = await this.intermediateRowRepository.find({
+        where: [
+          // Tablas Syclo
+          { table: '/SYCLO/CA000P', uploadId: uploadId },
+          { table: '/SYCLO/YCA000P', uploadId: uploadId },
+          { table: '/SYCLO/CA000S', uploadId: uploadId },
+          { table: '/SYCLO/YCA000S', uploadId: uploadId },
+          { table: '/SYCLO/CA000G', uploadId: uploadId },
+          { table: '/SYCLO/YCA000G', uploadId: uploadId },
+          // Tablas MFND
+          { table: '/MFND/C_ODO03', uploadId: uploadId },
+          { table: '/MFND/YC_ODO03', uploadId: uploadId },
+          { table: '/MFND/C_ODO03D', uploadId: uploadId },
+          { table: '/MFND/YC_ODO03D', uploadId: uploadId },
+        ]
+      });
+      console.log({uploadId});
+      console.log( "largo intermedio: ", intermediateRows.length )
+      if (intermediateRows.length === 0) {        
+        return 0;
+      }
+
+      // Arrays para acumular registros por tipo
+      const sycloCA000PRecords: SycloCA000P[] = [];
+      const sycloCA000SRecords: SycloCA000S[] = [];
+      const sycloCA000GRecords: SycloCA000G[] = [];
+      const mfndCODO03Records: MfndCODO03[] = [];
+      const mfndCODO03DRecords: MfndCODO03D[] = [];
+
+      // Procesar cada registro según su tabla
+      let contador = 0;
+      for (const row of intermediateRows) {
+        try {
+          contador++;
+          // console.log({contador});
+          if (row.table === '/SYCLO/CA000P' || row.table === '/SYCLO/YCA000P') {
+            // Procesar como CA000P
+            const sycloEntity = this.parseSycloCA000PLine(row.content_linea, uploadId);
+            sycloCA000PRecords.push(sycloEntity);
+        
+            
+          } else if (row.table === '/SYCLO/CA000S' || row.table === '/SYCLO/YCA000S') {
+            // Procesar como CA000S
+            const sycloEntity = this.parseSycloCA000SLine(row.content_linea, uploadId);
+            sycloCA000SRecords.push(sycloEntity);
+        
+            
+          } else if (row.table === '/SYCLO/CA000G' || row.table === '/SYCLO/YCA000G') {
+            // Procesar como CA000G
+            const sycloEntity = this.parseSycloCA000GLine(row.content_linea, uploadId);
+            sycloCA000GRecords.push(sycloEntity);
+        
+            
+          } else if (row.table === '/MFND/C_ODO03' || row.table === '/MFND/YC_ODO03') {
+            // Procesar como MfndCODO03
+            const mfndEntity = this.parseMfndCODO03Line(row.content_linea, uploadId);
+            mfndCODO03Records.push(mfndEntity);
+        
+            
+          } else if (row.table === '/MFND/C_ODO03D' || row.table === '/MFND/YC_ODO03D') {
+            // Procesar como MfndCODO03D
+            const mfndEntity = this.parseMfndCODO03DLine(row.content_linea, uploadId);
+            mfndCODO03DRecords.push(mfndEntity);
+        
+          }
+        } catch (error) {
+        
+        }
+      }
+
+      let totalSaved = 0;
+
+      // Guardar todos los tipos de registros
+      if (sycloCA000PRecords.length > 0) {
+        await this.sycloCA000PRepository.save(sycloCA000PRecords);
+        totalSaved += sycloCA000PRecords.length;
+        
+      }
+
+      if (sycloCA000SRecords.length > 0) {
+        await this.sycloCA000SRepository.save(sycloCA000SRecords);
+        totalSaved += sycloCA000SRecords.length;
+        
+      }
+
+      if (sycloCA000GRecords.length > 0) {
+        await this.sycloCA000GRepository.save(sycloCA000GRecords);
+        totalSaved += sycloCA000GRecords.length;
+        
+      }
+
+      if (mfndCODO03Records.length > 0) {
+        await this.mfndCODO03Repository.save(mfndCODO03Records);
+        totalSaved += mfndCODO03Records.length;
+        
+      }
+
+      if (mfndCODO03DRecords.length > 0) {
+        await this.mfndCODO03DRepository.save(mfndCODO03DRecords);
+        totalSaved += mfndCODO03DRecords.length;
+        
+      }
+
+      
+      return totalSaved;
+      
+    } catch (error) {
+      
+      throw error;
     }
   }
 
+// 🎯 FUNCIÓN PRINCIPAL - Actualizada para incluir tracking y procesamiento
   async uploadFile(
     file: Express.Multer.File,
-    userId?: string // ID del usuario que sube el archivo
-  ): Promise<{ message: string; recordsProcessed: number }> {
+    userId?: string
+  ): Promise<{ message: string; recordsProcessed: number; specialTablesProcessed: number }> {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
 
-    let data: any[] = [];
     let uploadTracking: UploadTracking;
-
+    
     try {
-      console.log(`Processing file: ${file.originalname}`);
+      let data: any[] = [];
+      let originalLines: string[] = [];
+      let separator: string = ',';
 
-      // 1. Parsear el archivo según su tipo
+      // 1. Parsear según tipo de archivo
       if (file.mimetype === 'text/csv') {
-        data = await this.parseCSV(file.buffer);
-      } else if (
-        file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-        file.mimetype === 'application/vnd.ms-excel'
-      ) {
-        data = await this.parseExcel(file.buffer);
+        const csvResult = await this.parseCSV(file.buffer);
+        data = csvResult.data;
+        originalLines = csvResult.originalLines;
+        separator = csvResult.separator;
       } else {
-        throw new BadRequestException('Unsupported file format. Please upload CSV or Excel files.');
+        throw new BadRequestException('Unsupported file format. Please upload CSV files.');
       }
 
-      console.log(`Parsed ${data.length} rows from file`);
-
-      // 2. Validar que tengamos datos
       if (data.length === 0) {
         throw new BadRequestException('No data found in file');
       }
 
-      // 3. Obtener información del primer registro válido para el tracking
-      let company = '';
-      let product = '';
-      let version = '';
-
-      // Buscar el primer registro válido para extraer company/product/version
-      for (const record of data) {
-        if (record && record.COMPANY && record.PRODUCT && record.VERSION) {
-          company = record.COMPANY;
-          product = record.PRODUCT;  
-          version = record.VERSION;
-          break;
-        }
-      }
-
-      // Validar que encontramos información válida
-      if (!company || !product || !version) {
-        console.log('Sample records:', data.slice(0, 3));
-        throw new BadRequestException('Invalid file format: Could not find valid COMPANY, PRODUCT, or VERSION in any record');
-      }
-
-      console.log(`Upload info: ${company}/${product}/${version}`);
-
-      // 4. Crear registro de tracking
+      // 2. Crear registro de tracking
+      // const tablesProcessed = [...new Set(data.map(row => row.TABLE || ''))].filter(Boolean);
+      const tablesProcessed = [...new Set(data.map(row => row.TABLE || ''))]
+      .filter(Boolean)
+      .filter(table => table !== 'TABLE');
+      const firstRow = data[1];
+      
       uploadTracking = this.uploadTrackingRepository.create({
-        company,
-        product,
-        version,
+        company: firstRow.COMPANY || '',
+        product: firstRow.PRODUCT || '',
+        version: firstRow.VERSION || '',
         fileName: file.originalname,
         uploadedBy: userId || 'anonymous',
         uploadedAt: new Date(),
         totalRecords: data.length,
-        status: 'processing',
-        tablesProcessed: [],
+        tablesProcessed,
+        status: 'processing'
       });
 
       await this.uploadTrackingRepository.save(uploadTracking);
-      console.log(`Created upload tracking with ID: ${uploadTracking.id}`);
+   
 
-      // 5. Agrupar datos por tabla (columna 4 = TABLE)
-      const dataByTable = this.groupDataByTable(data);
-      console.log(`Found ${Object.keys(dataByTable).length} different tables:`, Object.keys(dataByTable));
+      // 3. Convertir a estructura intermedia y guardar
+      const intermediateRows: IntermediateRow[] = [];
 
-      const tablesProcessed: string[] = [];
-      let totalRecordsProcessed = 0;
-
-      // 6. Procesar cada tabla
-      for (const [tableName, tableData] of Object.entries(dataByTable)) {
-        console.log(`\nProcessing table: ${tableName} with ${tableData.length} records`);
-
-        // Verificar si la tabla es soportada
-        if (!this.isTableSupported(tableName)) {
-          console.warn(`⚠️  Table ${tableName} is not supported, skipping...`);
-          continue;
-        }
-
+      data.forEach((row, index) => {
         try {
-          // Convertir datos del CSV a entidades usando el mapeo manual
-          const entities = tableData.map(row => {
-            try {
-              return this.mapCsvRowToEntity(row, tableName, uploadTracking.id);
-            } catch (error) {
-              console.error(`Error mapping row for table ${tableName}:`, error);
-              console.log('Problem row:', row);
-              throw error;
-            }
-          });
-
-          console.log(`✓ Mapped ${entities.length} entities for table ${tableName}`);
-
-          // Obtener el repositorio específico para esta tabla
-          const repository = this.getRepositoryForTable(tableName);
-
-          // Guardar las entidades en lotes para mejor performance
-          const batchSize = 100;
-          let savedCount = 0;
-
-          for (let i = 0; i < entities.length; i += batchSize) {
-            const batch = entities.slice(i, i + batchSize);
-            await repository.save(batch);
-            savedCount += batch.length;
-            console.log(`  Saved batch: ${savedCount}/${entities.length}`);
+          const company = row.COMPANY || '';
+          const product = row.PRODUCT || '';
+          const version = row.VERSION || '';
+          const table = row.TABLE || '';
+          const content_linea = originalLines[index] || '';
+          
+          if (!content_linea) {
+            console.warn(`⚠️ Row ${index}: No CSV line found`);
+            return;
           }
 
-          tablesProcessed.push(tableName);
-          totalRecordsProcessed += entities.length;
-
-          console.log(`✅ Successfully processed ${entities.length} records for table ${tableName}`);
-
+          const intermediateRow = this.intermediateRowRepository.create({
+            company,
+            product,
+            version,
+            table,
+            content_linea,
+            fileName: file.originalname,
+            uploadedBy: userId || 'anonymous',
+            uploadId:uploadTracking.id, // para referenciar con tabla
+          });
+          intermediateRows.push(intermediateRow);
         } catch (error) {
-          console.error(`❌ Error processing table ${tableName}:`, error);
-          throw new BadRequestException(`Error processing table ${tableName}: ${error.message}`);
+          console.error(`❌ Error processing row ${index}:`, error);
         }
+      });
+
+      // 4. Guardar intermediate rows
+      if (intermediateRows.length > 0) {
+        await this.intermediateRowRepository.save(intermediateRows);      
       }
 
-      // 7. Actualizar el tracking con la información final
-      uploadTracking.tablesProcessed = tablesProcessed;
-      uploadTracking.totalRecords = totalRecordsProcessed;
+      // 5. Procesar todas las tablas especiales (Syclo y MFND)
+      const specialTablesProcessed = await this.processIntermediateToAllTables(uploadTracking.id);
+
+      // 6. Actualizar estado del tracking
       uploadTracking.status = 'completed';
       await this.uploadTrackingRepository.save(uploadTracking);
 
-      console.log(`\n🎉 Upload completed successfully!`);
-      console.log(`Total records processed: ${totalRecordsProcessed}`);
-      console.log(`Tables processed: ${tablesProcessed.length} (${tablesProcessed.join(', ')})`);
-
       return {
-        message: `File processed successfully. ${totalRecordsProcessed} records processed across ${tablesProcessed.length} tables: ${tablesProcessed.join(', ')}`,
-        recordsProcessed: totalRecordsProcessed,
+        message: `File processed successfully. ${intermediateRows.length} intermediate rows and ${specialTablesProcessed} special table records saved.`,
+        recordsProcessed: intermediateRows.length,
+        specialTablesProcessed
       };
 
     } catch (error) {
       console.error('💥 Error during file upload:', error);
-
-      // Actualizar tracking en caso de error
+      
+      // Actualizar tracking con error si existe
       if (uploadTracking) {
         uploadTracking.status = 'error';
         uploadTracking.errorMessage = error.message;
@@ -322,534 +515,1062 @@ export class FilesService {
     }
   }
 
-  // Agrupar datos por tabla usando la columna TABLE (índice 3 o propiedad TABLE)
-  private groupDataByTable(data: any[]): Record<string, any[]> {
-    const grouped: Record<string, any[]> = {};
-    
-    data.forEach((row, index) => {
-      let tableName: string;
+  // === MÉTODOS DE CONSULTA ===
 
-      // Determinar el nombre de la tabla de la columna 4
-      if (Array.isArray(row)) {
-        // Si el row es un array (índices), la columna TABLE está en índice 3
-        tableName = row[3];
-      } else {
-        // Si el row es un objeto (propiedades), usar la propiedad TABLE
-        tableName = row.TABLE;
-      }
-
-      // Validar que tengamos un nombre de tabla válido
-      if (!tableName || tableName === 'TABLE' || tableName.trim() === '') {
-        console.warn(`Row ${index + 1}: No valid table name found, skipping...`);
-        return;
-      }
-
-      // Inicializar el grupo si no existe
-      if (!grouped[tableName]) {
-        grouped[tableName] = [];
-      }
-
-      // Agregar el row al grupo correspondiente
-      grouped[tableName].push(row);
-    });
-
-    // Log de resumen de agrupación
-    Object.entries(grouped).forEach(([tableName, rows]) => {
-      console.log(`Table "${tableName}": ${rows.length} records`);
-    });
-
-    return grouped;
-  }
-
-  // Parser para archivos CSV
-  private async parseCSV(buffer: Buffer): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      const results: any[] = [];
-      const csvContent = buffer.toString();
-      
-      console.log('First 200 chars of CSV:', csvContent.substring(0, 200));
-      
-      // Detectar el separador correcto
-      const firstLine = csvContent.split('\n')[0];
-      let separator = ',';
-      
-      if (firstLine.includes(';') && firstLine.split(';').length > firstLine.split(',').length) {
-        separator = ';';
-      }
-      
-      console.log(`Detected separator: "${separator}"`);
-      
-      const stream = Readable.from(csvContent);
-      
-      stream
-        .pipe(csv({
-          separator: separator
-        }))
-        .on('data', (data: any) => {
-          // Filtrar filas que son headers o vacías
-          if (data.COMPANY && data.COMPANY !== 'COMPANY' && data.COMPANY.trim() !== '') {
-            results.push(data);
-          }
-        })
-        .on('end', () => {
-          console.log(`CSV parsing completed: ${results.length} valid rows`);
-          if (results.length > 0) {
-            console.log('Sample parsed record:', results[0]);
-          }
-          resolve(results);
-        })
-        .on('error', (error) => {
-          console.error('CSV parsing error:', error);
-          reject(error);
-        });
-    });
-  }
-
-  // Parser para archivos Excel
-  private async parseExcel(buffer: Buffer): Promise<any[]> {
-    try {
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      
-      // Convertir a JSON sin headers fijos - usar los del archivo
-      const data = XLSX.utils.sheet_to_json(worksheet);
-
-      // Filtrar filas válidas
-      const validData = data.filter((row: any) => 
-        row.COMPANY && 
-        row.COMPANY !== 'COMPANY' && 
-        row.TABLE && 
-        row.TABLE !== 'TABLE'
-      );
-
-      console.log(`Excel parsing completed: ${validData.length} valid rows`);
-      return validData;
-
-    } catch (error) {
-      console.error('Excel parsing error:', error);
-      throw new BadRequestException(`Error parsing Excel file: ${error.message}`);
-    }
-  }
-
-   async getUploadHistory(): Promise<any[]> {
+  async getUploadHistory(): Promise<any[]> {
     const uploads = await this.uploadTrackingRepository.find({
       order: { uploadedAt: 'DESC' }
     });
 
-     console.log({uploads});
-     return uploads;
-
-    // return uploads.map(upload => ({
-    //   id: upload.id,
-    //   filename: upload.fileName,
-    //   uploadedat: upload.uploadedAt,
-    //   recordCount: upload.totalRecords,
-    //   company: upload.company,
-    //   version: upload.version,
-    //   status: upload.status,
-    //   tablesProcessed: upload.tablesProcessed,
-    //   errorMessage: upload.errorMessage
-    // }));
+    return uploads.map(upload => ({
+      id: upload.id,
+      fileName: upload.fileName,
+      uploadedAt: upload.uploadedAt,
+      recordCount: upload.totalRecords,
+      company: upload.company,
+      version: upload.version,
+      status: upload.status,
+      tablesProcessed: upload.tablesProcessed,
+      errorMessage: upload.errorMessage
+    }));
   }
 
-   async deleteByFileNameAndDate(fileName: string, uploadDate: string): Promise<{ message: string; deletedRecords: number }> {
+  // async deleteByFileNameAndDate(fileName: string, uploadDate: string): Promise<{ message: string; deletedRecords: number }> {
+  //   return null;
+  // }
+  async deleteByFileNameAndDate(fileName: string, uploadDate: string): Promise<{ message: string; deletedRecords: number }> {
     try {
-      console.log(`🗑️ Attempting to delete file: ${fileName} uploaded at: ${uploadDate}`);
-      
-      // Parsear y validar la fecha
-      const uploadDateTime = new Date(uploadDate);
-      if (isNaN(uploadDateTime.getTime())) {
-        throw new BadRequestException('Invalid upload date format');
+      // 1. Buscar el upload tracking por fileName y uploadDate
+      const uploadTracking = await this.uploadTrackingRepository.findOne({
+        where: {
+          fileName: fileName,
+          uploadedAt: new Date(uploadDate)
+        }
+      });
+
+      if (!uploadTracking) {
+        throw new BadRequestException(`Upload not found for file: ${fileName} on date: ${uploadDate}`);
       }
 
-      // Buscar el upload específico por fileName y fecha exacta
-      // Usar un rango de tiempo pequeño para manejar diferencias de milisegundos
-      const startTime = new Date(uploadDateTime.getTime() - 5000); // 5 segundos antes
-      const endTime = new Date(uploadDateTime.getTime() + 5000);   // 5 segundos después
-
-      const upload = await this.uploadTrackingRepository
-        .createQueryBuilder('upload')
-        .where('upload.fileName = :fileName', { fileName })
-        .andWhere('upload.uploadedAt BETWEEN :startTime AND :endTime', { 
-          startTime, 
-          endTime 
-        })
-        .getOne();
-
-      if (!upload) {
-        // Buscar uploads con el mismo fileName para debugging
-        const allUploadsWithSameName = await this.uploadTrackingRepository.find({
-          where: { fileName },
-          order: { uploadedAt: 'DESC' }
-        });
-
-        // console.log(`❌ Upload not found for: ${fileName} at ${uploadDate}`);
-        // console.log('📁 Available uploads with same fileName:', allUploadsWithSameName.map(u => ({
-        //   id: u.id,
-        //   fileName: u.fileName,
-        //   uploadedAt: u.uploadedAt,
-        //   company: u.company,
-        //   version: u.version
-        // })));
-
-        throw new BadRequestException(
-          `Upload not found: ${fileName} at ${uploadDate}. Found ${allUploadsWithSameName.length} uploads with the same filename.`
-        );
-      }
-
-      // console.log(`✅ Found upload to delete:`, {
-      //   id: upload.id,
-      //   fileName: upload.fileName,
-      //   uploadedAt: upload.uploadedAt,
-      //   company: upload.company,
-      //   version: upload.version,
-      //   totalRecords: upload.totalRecords,
-      //   tablesProcessed: upload.tablesProcessed
-      // });
+      console.log(`🗑️ Starting deletion for upload ID: ${uploadTracking.id}`);
 
       let totalDeletedRecords = 0;
 
-      // Eliminar datos de cada tabla procesada
-      for (const tableName of upload.tablesProcessed || []) {
-        // console.log(`🔄 Processing table: ${tableName}`);
-        
-        if (!this.isTableSupported(tableName)) {
-          // console.warn(`⚠️ Table ${tableName} is not supported, skipping...`);
-          continue;
-        }
+      // 2. Eliminar de todas las tablas específicas usando el uploadId
+      
+      // Eliminar de SycloCA000P
+      const deletedCA000P = await this.sycloCA000PRepository.delete({ uploadId: uploadTracking.id });
+      totalDeletedRecords += deletedCA000P.affected || 0;
+      console.log(`🗑️ Deleted ${deletedCA000P.affected || 0} records from SycloCA000P`);
 
-        try {
-          const repository = this.getRepositoryForTable(tableName);
-          
-          // Primero, contar cuántos registros vamos a eliminar
-          const recordCount = await repository.count({ where: { uploadId: upload.id } });
-          // console.log(`📊 Found ${recordCount} records to delete in table ${tableName}`);
+      // Eliminar de SycloCA000S
+      const deletedCA000S = await this.sycloCA000SRepository.delete({ uploadId: uploadTracking.id });
+      totalDeletedRecords += deletedCA000S.affected || 0;
+      console.log(`🗑️ Deleted ${deletedCA000S.affected || 0} records from SycloCA000S`);
 
-          if (recordCount > 0) {
-            // Eliminar los registros
-            const deleteResult = await repository.delete({ uploadId: upload.id });
-            const deletedCount = deleteResult.affected || 0;
-            totalDeletedRecords += deletedCount;
-            
-            console.log(`✅ Deleted ${deletedCount} records from table ${tableName}`);
-          } else {
-            console.log(`ℹ️ No records found in table ${tableName} for uploadId: ${upload.id}`);
-          }
+      // Eliminar de SycloCA000G
+      const deletedCA000G = await this.sycloCA000GRepository.delete({ uploadId: uploadTracking.id });
+      totalDeletedRecords += deletedCA000G.affected || 0;
+      console.log(`🗑️ Deleted ${deletedCA000G.affected || 0} records from SycloCA000G`);
 
-        } catch (error) {
-          console.error(`❌ Error deleting from table ${tableName}:`, error);
-          // Continuar con las otras tablas aunque una falle
-        }
-      }
+      // Eliminar de MfndCODO03
+      const deletedMfndCODO03 = await this.mfndCODO03Repository.delete({ uploadId: uploadTracking.id });
+      totalDeletedRecords += deletedMfndCODO03.affected || 0;
+      console.log(`🗑️ Deleted ${deletedMfndCODO03.affected || 0} records from MfndCODO03`);
 
-      // Eliminar el registro de tracking
-      console.log(`🗑️ Deleting upload tracking record: ${upload.id}`);
-      const trackingDeleteResult = await this.uploadTrackingRepository.delete({ id: upload.id });
-      console.log(`✅ Upload tracking deleted, affected rows: ${trackingDeleteResult.affected}`);
+      // Eliminar de MfndCODO03D
+      const deletedMfndCODO03D = await this.mfndCODO03DRepository.delete({ uploadId: uploadTracking.id });
+      totalDeletedRecords += deletedMfndCODO03D.affected || 0;
+      console.log(`🗑️ Deleted ${deletedMfndCODO03D.affected || 0} records from MfndCODO03D`);
 
-      const successMessage = `File "${fileName}" deleted successfully. Removed ${totalDeletedRecords} data records from ${upload.tablesProcessed?.length || 0} tables.`;
-      console.log(`🎉 ${successMessage}`);
+      // 3. Eliminar de IntermediateRow (tabla intermedia)
+      // const deletedIntermediate = await this.intermediateRowRepository.delete({ fileName: fileName });
+      // totalDeletedRecords += deletedIntermediate.affected || 0;
+      // console.log(`🗑️ Deleted ${deletedIntermediate.affected || 0} records from IntermediateRow`);
+
+      // 4. Finalmente eliminar el registro de UploadTracking
+      const deletedTracking = await this.uploadTrackingRepository.delete({ id: uploadTracking.id });
+      totalDeletedRecords += deletedTracking.affected || 0;
+      console.log(`🗑️ Deleted ${deletedTracking.affected || 0} records from UploadTracking`);
+
+      console.log(`🎯 Total deletion completed: ${totalDeletedRecords} records deleted`);
 
       return {
-        message: successMessage,
-        deletedRecords: totalDeletedRecords,
+        message: `Successfully deleted all data for file '${fileName}' uploaded on ${uploadDate}. Total records deleted: ${totalDeletedRecords}`,
+        deletedRecords: totalDeletedRecords
       };
 
     } catch (error) {
-      console.error('💥 Error in deleteByFileNameAndDate:', error);
-      
-      // Si es un BadRequestException, relanzarlo
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      
-      // Para otros errores, envolverlos en BadRequestException
-      throw new BadRequestException(`Error deleting file: ${error.message}`);
+      console.error('💥 Error during file deletion:', error);
+      throw new BadRequestException(`Error deleting file data: ${error.message}`);
     }
-  };
-
-  //   const repository = repositoryMap[tableName];
-  //   if (!repository) {
-  //     throw new Error(`No repository found for table: ${tableName}`);
-  //   }
-  //   return repository;
-  // }
-
-async compareUploads(
-  fileName1: string,
-  uploadDate1: string,
-  fileName2: string,
-  uploadDate2: string,
-  tableFilter: string = 'all'
-): Promise<any[]> {
-  try {
-    console.log(`🔄 Starting comparison between uploads:`);
-    console.log(`  Selection 1: ${fileName1} at ${uploadDate1}`);
-    console.log(`  Selection 2: ${fileName2} at ${uploadDate2}`);
-    console.log(`  Table filter: ${tableFilter}`);
-
-    // 1. Buscar los uploads específicos
-    const upload1 = await this.findUploadByFileNameAndDate(fileName1, uploadDate1);
-    const upload2 = await this.findUploadByFileNameAndDate(fileName2, uploadDate2);
-
-    if (!upload1 || !upload2) {
-      throw new BadRequestException('One or both uploads not found');
-    }
-
-    // 2. Determinar qué tablas comparar
-    let tablesToCompare: string[] = [];
-    
-    if (tableFilter === 'all') {
-      // Comparar solo las tablas que existen en ambos uploads
-      const tables1 = upload1.tablesProcessed || [];
-      const tables2 = upload2.tablesProcessed || [];
-      tablesToCompare = tables1.filter(table => tables2.includes(table));
-    } else {
-      // Comparar solo la tabla específica si existe en ambos
-      if ((upload1.tablesProcessed || []).includes(tableFilter) && 
-          (upload2.tablesProcessed || []).includes(tableFilter)) {
-        tablesToCompare = [tableFilter];
-      }
-    }
-
-    console.log(`📊 Tables to compare: ${tablesToCompare.join(', ')}`);
-
-    if (tablesToCompare.length === 0) {
-      return [];
-    }
-
-    // 3. Comparar cada tabla
-    const results: any[] = [];
-    
-    for (const tableName of tablesToCompare) {
-      if (!this.isTableSupported(tableName)) {
-        console.warn(`⚠️ Table ${tableName} is not supported, skipping...`);
-        continue;
-      }
-
-      try {
-        const comparisonResult = await this.compareTableData(
-          tableName, 
-          upload1.id, 
-          upload2.id
-        );
-        
-        if (comparisonResult.totalRecords > 0) {
-          results.push(comparisonResult);
-        }
-      } catch (error) {
-        console.error(`❌ Error comparing table ${tableName}:`, error);
-      }
-    }
-
-    console.log(`✅ Comparison completed. ${results.length} tables with differences found.`);
-    return results;
-
-  } catch (error) {
-    console.error('💥 Error in compareUploads:', error);
-    throw new BadRequestException(`Error comparing uploads: ${error.message}`);
-  }
-}
-
-private async findUploadByFileNameAndDate(fileName: string, uploadDate: string): Promise<any> {
-  const uploadDateTime = new Date(uploadDate);
-  if (isNaN(uploadDateTime.getTime())) {
-    throw new BadRequestException(`Invalid upload date format: ${uploadDate}`);
   }
 
-  // Buscar con rango de tiempo para manejar diferencias de milisegundos
-  const startTime = new Date(uploadDateTime.getTime() - 5000);
-  const endTime = new Date(uploadDateTime.getTime() + 5000);
+  // === MÉTODOS DE COMPARACIÓN ===
 
-  return await this.uploadTrackingRepository
-    .createQueryBuilder('upload')
-    .where('upload.fileName = :fileName', { fileName })
-    .andWhere('upload.uploadedAt BETWEEN :startTime AND :endTime', { 
-      startTime, 
-      endTime 
-    })
-    .getOne();
-}
-
-private async compareTableData(
-  tableName: string, 
-  uploadId1: string, 
-  uploadId2: string
-): Promise<any> {
-  console.log(`🔍 Comparing table ${tableName} between uploads ${uploadId1} and ${uploadId2}`);
-  
-  // Obtener el repositorio para esta tabla
-  const repository = this.getRepositoryForTable(tableName);
-  
-  // Obtener datos de ambos uploads
-  const data1 = await repository.find({ where: { uploadId: uploadId1 } });
-  const data2 = await repository.find({ where: { uploadId: uploadId2 } });
-  
-  console.log(`📊 Data counts - Upload 1: ${data1.length}, Upload 2: ${data2.length}`);
-
-  // Configuración de campos y claves por tabla
-  const tableConfig = this.getTableComparisonConfig(tableName);
-  
-  // Crear mapas usando el campo clave específico de cada tabla
-  const data1Map = new Map<string, any>();
-  const data2Map = new Map<string, any>();
-
-  data1.forEach(item => {
-    const key = item[tableConfig.keyField] || '';
-    if (key) {
-      data1Map.set(key, item);
-    }
-  });
-
-  data2.forEach(item => {
-    const key = item[tableConfig.keyField] || '';
-    if (key) {
-      data2Map.set(key, item);
-    }
-  });
-
-  // Realizar comparación
-  const comparisonRecords: any[] = [];
-  let differences = 0;
-  let newInSelection1 = 0;
-  let newInSelection2 = 0;
-
-  // Comparar registros de data1 vs data2
-  for (const [key, item1] of data1Map) {
-    const item2 = data2Map.get(key);
-
-    if (!item2) {
-      // Registro existe solo en upload 1
-      const recordData: any = { 
-        table: tableName, 
-        type: 'new_in_selection1',
-        [tableConfig.keyField]: key
-      };
-      
-      tableConfig.compareFields.forEach(field => {
-        recordData[field] = item1[field] || '';
+// 🔍 Función privada para comparar registros SycloCA000P entre dos uploads
+  private async compareSycloCA000P(uploadId1: string, uploadId2: string, tableToFilter: string): Promise<any> {
+    try {
+      // Obtener registros del archivo 1 filtrados por tabla específica
+      const records1 = await this.sycloCA000PRepository.find({
+        where: { 
+          uploadId: uploadId1,
+          table: tableToFilter 
+        },
+        order: { paramName: 'ASC', paramValue: 'ASC' }
       });
 
-      comparisonRecords.push(recordData);
-      newInSelection1++;
-    } else {
-      // Verificar si hay diferencias en los campos de comparación
-      let hasDifferences = false;
-      const diffFields: string[] = [];
+      // Obtener registros del archivo 2 filtrados por tabla específica
+      const records2 = await this.sycloCA000PRepository.find({
+        where: { 
+          uploadId: uploadId2,
+          table: tableToFilter 
+        },
+        order: { paramName: 'ASC', paramValue: 'ASC' }
+      });
+
+      const fieldChanges: any[] = [];
+      let newInSelection1 = 0;
+      let newInSelection2 = 0;
+      let differences = 0;
       
-      for (const field of tableConfig.compareFields) {
-        const value1 = (item1[field] || '').toString();
-        const value2 = (item2[field] || '').toString();
-        if (value1 !== value2) {
-          hasDifferences = true;
-          diffFields.push(field);
+      // Crear un Map para búsqueda rápida en archivo 2
+      const records2Map = new Map<string, any>();
+      records2.forEach(record => {
+        const key = `${record.paramName}|${record.paramValue}`;
+        records2Map.set(key, record);
+      });
+
+      // Recorrer registros del archivo 1
+      for (const record1 of records1) {
+        const key = `${record1.paramName}|${record1.paramValue}`;
+        const record2 = records2Map.get(key);
+
+        if (!record2) {
+          // Registro existe en archivo 1 pero no en archivo 2 (ELIMINADO)
+          newInSelection1++;
+          fieldChanges.push({
+            record1: {
+              PARAM_NAME: record1.paramName,
+              PARAM_VALUE: record1.paramValue,
+              PARAM_GROUP: record1.paramGroup,
+              DEP_RECORD_NO: record1.depRecordNo,
+              PARAM_TYPE: record1.paramType,
+              PARAM_SCOPE: record1.paramScope,
+              PARAM_COMMENT: record1.paramComment,
+              ACTIVE: record1.active,
+              FLAG_NO_CHANGE: record1.flagNoChange
+            },
+            record2: null,
+            fields: {} // No hay campos para marcar porque no existe record2
+          });
+        } else {
+          // Comparar campos específicos
+          const changedFields: any = {};
+          let hasChanges = false;
+          
+          if (record1.paramGroup !== record2.paramGroup) {
+            changedFields.PARAM_GROUP = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.depRecordNo !== record2.depRecordNo) {
+            changedFields.DEP_RECORD_NO = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.paramType !== record2.paramType) {
+            changedFields.PARAM_TYPE = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.paramScope !== record2.paramScope) {
+            changedFields.PARAM_SCOPE = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.paramComment !== record2.paramComment) {
+            changedFields.PARAM_COMMENT = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.active !== record2.active) {
+            changedFields.ACTIVE = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.flagNoChange !== record2.flagNoChange) {
+            changedFields.FLAG_NO_CHANGE = true;
+            hasChanges = true;
+            differences++;
+          }
+
+          if (hasChanges) {
+            // Hay diferencias entre los registros
+            fieldChanges.push({
+              record1: {
+                PARAM_NAME: record1.paramName,
+                PARAM_VALUE: record1.paramValue,
+                PARAM_GROUP: record1.paramGroup,
+                DEP_RECORD_NO: record1.depRecordNo,
+                PARAM_TYPE: record1.paramType,
+                PARAM_SCOPE: record1.paramScope,
+                PARAM_COMMENT: record1.paramComment,
+                ACTIVE: record1.active,
+                FLAG_NO_CHANGE: record1.flagNoChange
+              },
+              record2: {
+                PARAM_NAME: record2.paramName,
+                PARAM_VALUE: record2.paramValue,
+                PARAM_GROUP: record2.paramGroup,
+                DEP_RECORD_NO: record2.depRecordNo,
+                PARAM_TYPE: record2.paramType,
+                PARAM_SCOPE: record2.paramScope,
+                PARAM_COMMENT: record2.paramComment,
+                ACTIVE: record2.active,
+                FLAG_NO_CHANGE: record2.flagNoChange
+              },
+              fields: changedFields
+            });
+          }
+
+          // Marcar como procesado en el Map
+          records2Map.delete(key);
         }
       }
-      
-      if (hasDifferences) {
-        const recordData: any = { 
-          table: tableName, 
-          type: 'different', 
-          diffFields,
-          [tableConfig.keyField]: key
-        };
-        
-        tableConfig.compareFields.forEach(field => {
-          recordData[`${field}_sel1`] = item1[field] || '';
-          recordData[`${field}_sel2`] = item2[field] || '';
+
+      // Los registros que quedaron en records2Map son nuevos en archivo 2
+      for (const [key, record2] of records2Map) {
+        newInSelection2++;
+        fieldChanges.push({
+          record1: null,
+          record2: {
+            PARAM_NAME: record2.paramName,
+            PARAM_VALUE: record2.paramValue,
+            PARAM_GROUP: record2.paramGroup,
+            DEP_RECORD_NO: record2.depRecordNo,
+            PARAM_TYPE: record2.paramType,
+            PARAM_SCOPE: record2.paramScope,
+            PARAM_COMMENT: record2.paramComment,
+            ACTIVE: record2.active,
+            FLAG_NO_CHANGE: record2.flagNoChange
+          },
+          fields: {} // No hay campos para marcar porque no existe record1
         });
-
-        comparisonRecords.push(recordData);
-        differences++;
       }
+
+      return {
+        table: tableToFilter, // Retorna la tabla específica que se filtró
+        type: 'different',
+        fieldChanges,
+        stats: {
+          differences,
+          newInSelection1,
+          newInSelection2,
+          totalRecords: fieldChanges.length
+        }
+      };
+
+    } catch (error) {
+      console.error('💥 Error comparing SycloCA000P records:', error);
+      throw error;
     }
   }
-
-  // Buscar registros que existen solo en data2
-  for (const [key, item2] of data2Map) {
-    if (!data1Map.has(key)) {
-      const recordData: any = { 
-        table: tableName, 
-        type: 'new_in_selection2',
-        [tableConfig.keyField]: key
-      };
-      
-      tableConfig.compareFields.forEach(field => {
-        recordData[field] = item2[field] || '';
+// 🔍 Función privada para comparar registros SycloCA000S entre dos uploads
+  private async compareSycloCA000S(uploadId1: string, uploadId2: string, tableToFilter: string): Promise<any> {
+    try {
+      // Obtener registros del archivo 1 filtrados por tabla específica
+      const records1 = await this.sycloCA000SRepository.find({
+        where: { 
+          uploadId: uploadId1,
+          table: tableToFilter 
+        },
+        order: { objectType: 'ASC', mobileStatus: 'ASC' }
       });
 
-      comparisonRecords.push(recordData);
-      newInSelection2++;
+      // Obtener registros del archivo 2 filtrados por tabla específica
+      const records2 = await this.sycloCA000SRepository.find({
+        where: { 
+          uploadId: uploadId2,
+          table: tableToFilter 
+        },
+        order: { objectType: 'ASC', mobileStatus: 'ASC' }
+      });
+
+      const fieldChanges: any[] = [];
+      let newInSelection1 = 0;
+      let newInSelection2 = 0;
+      let differences = 0;
+      
+      // Crear un Map para búsqueda rápida en archivo 2
+      const records2Map = new Map<string, any>();
+      records2.forEach(record => {
+        // Clave compuesta con todos los campos clave
+        const key = `${record.objectType}|${record.mobileStatus}|${record.mblstatusLabel}|${record.istat}|${record.stsma}|${record.estat}|${record.statusAttr1}|${record.statusAttr2}`;
+        records2Map.set(key, record);
+      });
+
+      // Recorrer registros del archivo 1
+      for (const record1 of records1) {
+        const key = `${record1.objectType}|${record1.mobileStatus}|${record1.mblstatusLabel}|${record1.istat}|${record1.stsma}|${record1.estat}|${record1.statusAttr1}|${record1.statusAttr2}`;
+        const record2 = records2Map.get(key);
+
+        if (!record2) {
+          // Registro existe en archivo 1 pero no en archivo 2 (ELIMINADO)
+          newInSelection1++;
+          fieldChanges.push({
+            record1: {
+              OBJECT_TYPE: record1.objectType,
+              MOBILE_STATUS: record1.mobileStatus,
+              MBLSTATUS_LABEL: record1.mblstatusLabel,
+              ISTAT: record1.istat,
+              STSMA: record1.stsma,
+              ESTAT: record1.estat,
+              STATUS_ATTR_1: record1.statusAttr1,
+              STATUS_ATTR_2: record1.statusAttr2,
+              FLAG_INIT_STATUS: record1.flagInitStatus,
+              FLAG_NO_UPDATE: record1.flagNoUpdate,
+              FLAG_DISABLED: record1.flagDisabled
+            },
+            record2: null,
+            fields: {} // No hay campos para marcar porque no existe record2
+          });
+        } else {
+          // Comparar campos específicos que pueden cambiar
+          const changedFields: any = {};
+          let hasChanges = false;
+          
+          if (record1.flagInitStatus !== record2.flagInitStatus) {
+            changedFields.FLAG_INIT_STATUS = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.flagNoUpdate !== record2.flagNoUpdate) {
+            changedFields.FLAG_NO_UPDATE = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.flagDisabled !== record2.flagDisabled) {
+            changedFields.FLAG_DISABLED = true;
+            hasChanges = true;
+            differences++;
+          }
+
+          if (hasChanges) {
+            // Hay diferencias entre los registros
+            fieldChanges.push({
+              record1: {
+                OBJECT_TYPE: record1.objectType,
+                MOBILE_STATUS: record1.mobileStatus,
+                MBLSTATUS_LABEL: record1.mblstatusLabel,
+                ISTAT: record1.istat,
+                STSMA: record1.stsma,
+                ESTAT: record1.estat,
+                STATUS_ATTR_1: record1.statusAttr1,
+                STATUS_ATTR_2: record1.statusAttr2,
+                FLAG_INIT_STATUS: record1.flagInitStatus,
+                FLAG_NO_UPDATE: record1.flagNoUpdate,
+                FLAG_DISABLED: record1.flagDisabled
+              },
+              record2: {
+                OBJECT_TYPE: record2.objectType,
+                MOBILE_STATUS: record2.mobileStatus,
+                MBLSTATUS_LABEL: record2.mblstatusLabel,
+                ISTAT: record2.istat,
+                STSMA: record2.stsma,
+                ESTAT: record2.estat,
+                STATUS_ATTR_1: record2.statusAttr1,
+                STATUS_ATTR_2: record2.statusAttr2,
+                FLAG_INIT_STATUS: record2.flagInitStatus,
+                FLAG_NO_UPDATE: record2.flagNoUpdate,
+                FLAG_DISABLED: record2.flagDisabled
+              },
+              fields: changedFields
+            });
+          }
+
+          // Marcar como procesado en el Map
+          records2Map.delete(key);
+        }
+      }
+
+      // Los registros que quedaron en records2Map son nuevos en archivo 2
+      for (const [key, record2] of records2Map) {
+        newInSelection2++;
+        fieldChanges.push({
+          record1: null,
+          record2: {
+            OBJECT_TYPE: record2.objectType,
+            MOBILE_STATUS: record2.mobileStatus,
+            MBLSTATUS_LABEL: record2.mblstatusLabel,
+            ISTAT: record2.istat,
+            STSMA: record2.stsma,
+            ESTAT: record2.estat,
+            STATUS_ATTR_1: record2.statusAttr1,
+            STATUS_ATTR_2: record2.statusAttr2,
+            FLAG_INIT_STATUS: record2.flagInitStatus,
+            FLAG_NO_UPDATE: record2.flagNoUpdate,
+            FLAG_DISABLED: record2.flagDisabled
+          },
+          fields: {} // No hay campos para marcar porque no existe record1
+        });
+      }
+
+      return {
+        table: tableToFilter, // Retorna la tabla específica que se filtró
+        type: 'different',
+        fieldChanges,
+        stats: {
+          differences,
+          newInSelection1,
+          newInSelection2,
+          totalRecords: fieldChanges.length
+        }
+      };
+
+    } catch (error) {
+      console.error('💥 Error comparing SycloCA000S records:', error);
+      throw error;
     }
   }
 
-  console.log(`📈 Comparison results for ${tableName}:`, {
-    totalRecords: comparisonRecords.length,
-    differences,
-    newInSelection1,
-    newInSelection2
-  });
+  // 🔍 Función privada para comparar registros MfndCODO03 entre dos uploads
+  private async compareMfndCODO03(uploadId1: string, uploadId2: string, tableToFilter: string): Promise<any> {
+    try {
+      // Obtener registros del archivo 1
+      const records1 = await this.mfndCODO03Repository.find({
+        where: { 
+           uploadId: uploadId1,
+           table: tableToFilter
+           },  // ← NUEVO FILTRO 
+        order: { ruleNo: 'ASC', ruleType: 'ASC' }
+      });
 
-  return {
-    table: tableName,
-    totalRecords: comparisonRecords.length,
-    differences,
-    newInSelection1,
-    newInSelection2,
-    records: comparisonRecords,
-    fields: tableConfig.compareFields,
-    keyField: tableConfig.keyField
-  };
-}
+      // Obtener registros del archivo 2
+      const records2 = await this.mfndCODO03Repository.find({
+        where: { uploadId: uploadId2, table: tableToFilter },
+        order: { ruleNo: 'ASC', ruleType: 'ASC' }
+      });
 
-private getTableComparisonConfig(tableName: string): { keyField: string; compareFields: string[] } {
-  const configs = {
-    '/SYCLO/CA000P': {
-      keyField: 'paramName',
-      compareFields: [
-        'paramName', 'paramValue', 'paramGroup', 'depRecordNo', 
-        'paramType', 'paramScope', 'paramComment', 'active', 'flagNoChange',
-        'enableRule', 'enableLanguVal', 'ruleCat', 'ruleId', 'ruleInput'
-      ]
-    },
-    '/SYCLO/CA000S': {
-      keyField: 'objectType',
-      compareFields: [
-        'objectType', 'mobileStatus', 'mblstatusLabel', 'istat', 'stsma', 
-        'estat', 'statusAttr1', 'statusAttr2', 'flagInitStatus', 
-        'flagNoUpdate', 'flagDisabled'
-      ]
-    },
-    '/MFND/C_ODO03': {
-      keyField: 'ruleKey',
-      compareFields: [
-        'ruleKey', 'ruleNo', 'ruleType', 'rangeSign', 'rangeOption', 
-        'ruleValue', 'ruleValue1', 'active', 'ownerObject'
-      ]
-    },
-    '/MFND/C_ODO03D': {
-      keyField: 'ruleKey',
-      compareFields: [
-        'ruleKey', 'active', 'mobileApp', 'ownerObject', 'ruleType', 
-        'ruleValue', 'ruleValue1', 'ruleValue2', 'ruleValue3'
-      ]
-    },
-    '/SYCLO/CA000G': {
-      keyField: 'rootObjkey',
-      compareFields: [
-        'mobileApp', 'assignmentNo', 'rootObjtyp', 'rootObjkey', 
-        'childObjtyp', 'childObjkey', 'active', 'inScope', 'ruleValue3'
-      ]
+      const fieldChanges: any[] = [];
+      let newInSelection1 = 0;
+      let newInSelection2 = 0;
+      let differences = 0;
+      
+      // Crear un Map para búsqueda rápida en archivo 2
+      const records2Map = new Map<string, any>();
+      records2.forEach(record => {
+        // Clave compuesta con todos los campos clave
+        const key = `${record.ruleNo}|${record.ruleType}|${record.rangeSign}|${record.rangeOption}|${record.ruleValue}`;
+        records2Map.set(key, record);
+      });
+
+      // Recorrer registros del archivo 1
+      for (const record1 of records1) {
+        const key = `${record1.ruleNo}|${record1.ruleType}|${record1.rangeSign}|${record1.rangeOption}|${record1.ruleValue}`;
+        const record2 = records2Map.get(key);
+
+        if (!record2) {
+          // Registro existe en archivo 1 pero no en archivo 2 (ELIMINADO)
+          newInSelection1++;
+          fieldChanges.push({
+            record1: {
+              RULE_NO: record1.ruleNo,
+              RULE_TYPE: record1.ruleType,
+              RANGE_SIGN: record1.rangeSign,
+              RANGE_OPTION: record1.rangeOption,
+              RULE_VALUE: record1.ruleValue,
+              RULE_VALUE_1: record1.ruleValue1,
+              ACTIVE: record1.active,              
+              OWNER_OBJECT: record1.ownerObject
+            },
+            record2: null,
+            fields: {} // No hay campos para marcar porque no existe record2
+          });
+        } else {
+          // Comparar campos específicos que pueden cambiar
+          const changedFields: any = {};
+          let hasChanges = false;
+          
+          if (record1.ruleValue1 !== record2.ruleValue1) {
+            changedFields.RULE_VALUE_1 = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.active !== record2.active) {
+            changedFields.ACTIVE = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.ownerObject !== record2.ownerObject) {
+            changedFields.OWNER_OBJECT = true;
+            hasChanges = true;
+            differences++;
+          }
+
+          if (hasChanges) {
+            // Hay diferencias entre los registros
+            fieldChanges.push({
+              record1: {
+                RULE_NO: record1.ruleNo,
+                RULE_TYPE: record1.ruleType,
+                RANGE_SIGN: record1.rangeSign,
+                RANGE_OPTION: record1.rangeOption,
+                RULE_VALUE: record1.ruleValue,
+                RULE_VALUE_1: record1.ruleValue1,
+                ACTIVE: record1.active,                
+                OWNER_OBJECT: record1.ownerObject
+              },
+              record2: {
+                RULE_NO: record2.ruleNo,
+                RULE_TYPE: record2.ruleType,
+                RANGE_SIGN: record2.rangeSign,
+                RANGE_OPTION: record2.rangeOption,
+                RULE_VALUE: record2.ruleValue,
+                RULE_VALUE_1: record2.ruleValue1,
+                ACTIVE: record2.active,
+                MOBILE_APP: record2.mobileApp,
+                OWNER_OBJECT: record2.ownerObject
+              },
+              fields: changedFields
+            });
+          }
+
+          // Marcar como procesado en el Map
+          records2Map.delete(key);
+        }
+      }
+
+      // Los registros que quedaron en records2Map son nuevos en archivo 2
+      for (const [key, record2] of records2Map) {
+        newInSelection2++;
+        fieldChanges.push({
+          record1: null,
+          record2: {
+            RULE_NO: record2.ruleNo,
+            RULE_TYPE: record2.ruleType,
+            RANGE_SIGN: record2.rangeSign,
+            RANGE_OPTION: record2.rangeOption,
+            RULE_VALUE: record2.ruleValue,
+            RULE_VALUE_1: record2.ruleValue1,
+            ACTIVE: record2.active,
+            MOBILE_APP: record2.mobileApp,
+            OWNER_OBJECT: record2.ownerObject
+          },
+          fields: {} // No hay campos para marcar porque no existe record1
+        });
+      }
+
+      return {
+        table: tableToFilter,
+        type: 'different',
+        fieldChanges,
+        stats: {
+          differences,
+          newInSelection1,
+          newInSelection2,
+          totalRecords: fieldChanges.length
+        }
+      };
+
+    } catch (error) {
+      console.error('💥 Error comparing MfndCODO03 records:', error);
+      throw error;
     }
-  };
-
-  const config = configs[tableName];
-  if (!config) {
-    throw new Error(`No comparison configuration found for table: ${tableName}`);
   }
 
-  return config;
-}
+  // 🔍 Función privada para comparar registros MfndCODO03D entre dos uploads
+  private async compareMfndCODO03D(uploadId1: string, uploadId2: string, tableToFilter: string): Promise<any> {
+    try {
+      // Obtener registros del archivo 1
+      const records1 = await this.mfndCODO03DRepository.find({
+         where: { 
+          uploadId: uploadId1,
+          table: tableToFilter  // ← NUEVO FILTRO
+        },
+        order: { ruleKey: 'ASC', active: 'ASC' }
+      });
 
+      // Obtener registros del archivo 2
+      const records2 = await this.mfndCODO03DRepository.find({
+        where: { uploadId: uploadId2, table: tableToFilter },
+        order: { ruleKey: 'ASC', active: 'ASC' }
+      });
+
+      const fieldChanges: any[] = [];
+      let newInSelection1 = 0;
+      let newInSelection2 = 0;
+      let differences = 0;
+      
+      // Crear un Map para búsqueda rápida en archivo 2
+      const records2Map = new Map<string, any>();
+      records2.forEach(record => {
+        // Clave compuesta con todos los campos clave
+        const key = `${record.ruleKey}|${record.active}|${record.mobileApp}|${record.ownerObject}`;
+        records2Map.set(key, record);
+      });
+
+      // Recorrer registros del archivo 1
+      for (const record1 of records1) {
+        const key = `${record1.ruleKey}|${record1.active}|${record1.mobileApp}|${record1.ownerObject}`;
+        const record2 = records2Map.get(key);
+
+        if (!record2) {
+          // Registro existe en archivo 1 pero no en archivo 2 (ELIMINADO)
+          newInSelection1++;
+          fieldChanges.push({
+            record1: {
+              RULE_KEY: record1.ruleKey,
+              ACTIVE: record1.active,
+              MOBILE_APP: record1.mobileApp,
+              OWNER_OBJECT: record1.ownerObject,
+              RULE_TYPE: record1.ruleType,
+              RULE_VALUE: record1.ruleValue,
+              RULE_VALUE1: record1.ruleValue1,
+              RULE_VALUE2: record1.ruleValue2,
+              RULE_VALUE3: record1.ruleValue3
+            },
+            record2: null,
+            fields: {} // No hay campos para marcar porque no existe record2
+          });
+        } else {
+          // Comparar campos específicos que pueden cambiar
+          const changedFields: any = {};
+          let hasChanges = false;
+          
+          if (record1.ruleType !== record2.ruleType) {
+            changedFields.RULE_TYPE = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.ruleValue !== record2.ruleValue) {
+            changedFields.RULE_VALUE = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.ruleValue1 !== record2.ruleValue1) {
+            changedFields.RULE_VALUE1 = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.ruleValue2 !== record2.ruleValue2) {
+            changedFields.RULE_VALUE2 = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.ruleValue3 !== record2.ruleValue3) {
+            changedFields.RULE_VALUE3 = true;
+            hasChanges = true;
+            differences++;
+          }
+
+          if (hasChanges) {
+            // Hay diferencias entre los registros
+            fieldChanges.push({
+              record1: {
+                RULE_KEY: record1.ruleKey,
+                ACTIVE: record1.active,
+                MOBILE_APP: record1.mobileApp,
+                OWNER_OBJECT: record1.ownerObject,
+                RULE_TYPE: record1.ruleType,
+                RULE_VALUE: record1.ruleValue,
+                RULE_VALUE1: record1.ruleValue1,
+                RULE_VALUE2: record1.ruleValue2,
+                RULE_VALUE3: record1.ruleValue3
+              },
+              record2: {
+                RULE_KEY: record2.ruleKey,
+                ACTIVE: record2.active,
+                MOBILE_APP: record2.mobileApp,
+                OWNER_OBJECT: record2.ownerObject,
+                RULE_TYPE: record2.ruleType,
+                RULE_VALUE: record2.ruleValue,
+                RULE_VALUE1: record2.ruleValue1,
+                RULE_VALUE2: record2.ruleValue2,
+                RULE_VALUE3: record2.ruleValue3
+              },
+              fields: changedFields
+            });
+          }
+
+          // Marcar como procesado en el Map
+          records2Map.delete(key);
+        }
+      }
+
+      // Los registros que quedaron en records2Map son nuevos en archivo 2
+      for (const [key, record2] of records2Map) {
+        newInSelection2++;
+        fieldChanges.push({
+          record1: null,
+          record2: {
+            RULE_KEY: record2.ruleKey,
+            ACTIVE: record2.active,
+            MOBILE_APP: record2.mobileApp,
+            OWNER_OBJECT: record2.ownerObject,
+            RULE_TYPE: record2.ruleType,
+            RULE_VALUE: record2.ruleValue,
+            RULE_VALUE1: record2.ruleValue1,
+            RULE_VALUE2: record2.ruleValue2,
+            RULE_VALUE3: record2.ruleValue3
+          },
+          fields: {} // No hay campos para marcar porque no existe record1
+        });
+      }
+
+      return {
+        table: tableToFilter  , //'/MFND/C_ODO03D',
+        type: 'different',
+        fieldChanges,
+        stats: {
+          differences,
+          newInSelection1,
+          newInSelection2,
+          totalRecords: fieldChanges.length
+        }
+      };
+
+    } catch (error) {
+      console.error('💥 Error comparing MfndCODO03D records:', error);
+      throw error;
+    }
+  }
+
+  // 🔍 Función privada para comparar registros SycloCA000G entre dos uploads
+  private async compareSycloCA000G(uploadId1: string, uploadId2: string, tableToFilter: string): Promise<any> {
+    try {
+      // Obtener registros del archivo 1
+      const records1 = await this.sycloCA000GRepository.find({
+          where: { 
+          uploadId: uploadId1,
+          table: tableToFilter  // ← NUEVO FILTRO
+        },
+        order: { rootObjtyp: 'ASC', rootObjkey: 'ASC', childObjtyp: 'ASC' }
+      });
+
+      // Obtener registros del archivo 2
+      const records2 = await this.sycloCA000GRepository.find({
+        where: { uploadId: uploadId2,   table: tableToFilter  },
+        order: { rootObjtyp: 'ASC', rootObjkey: 'ASC', childObjtyp: 'ASC' }
+      });
+
+      const fieldChanges: any[] = [];
+      let newInSelection1 = 0;
+      let newInSelection2 = 0;
+      let differences = 0;
+      
+      // Crear un Map para búsqueda rápida en archivo 2
+      const records2Map = new Map<string, any>();
+      records2.forEach(record => {
+        // Clave compuesta con todos los campos clave
+        const key = `${record.rootObjtyp}|${record.rootObjkey}|${record.childObjtyp}|${record.childObjkey}`;
+        records2Map.set(key, record);
+      });
+
+      // Recorrer registros del archivo 1
+      for (const record1 of records1) {
+        const key = `${record1.rootObjtyp}|${record1.rootObjkey}|${record1.childObjtyp}|${record1.childObjkey}`;
+        const record2 = records2Map.get(key);
+
+        if (!record2) {
+          // Registro existe en archivo 1 pero no en archivo 2 (ELIMINADO)
+          newInSelection1++;
+          fieldChanges.push({
+            record1: {
+              ROOT_OBJTYP: record1.rootObjtyp,
+              ROOT_OBJKEY: record1.rootObjkey,
+              CHILD_OBJTYP: record1.childObjtyp,
+              CHILD_OBJKEY: record1.childObjkey,
+              ACTIVE: record1.active,
+              IN_SCOPE: record1.inScope
+            },
+            record2: null,
+            fields: {} // No hay campos para marcar porque no existe record2
+          });
+        } else {
+          // Comparar campos específicos que pueden cambiar
+          const changedFields: any = {};
+          let hasChanges = false;
+          
+          if (record1.active !== record2.active) {
+            changedFields.ACTIVE = true;
+            hasChanges = true;
+            differences++;
+          }
+          if (record1.inScope !== record2.inScope) {
+            changedFields.IN_SCOPE = true;
+            hasChanges = true;
+            differences++;
+          }
+
+          if (hasChanges) {
+            // Hay diferencias entre los registros
+            fieldChanges.push({
+              record1: {
+                ROOT_OBJTYP: record1.rootObjtyp,
+                ROOT_OBJKEY: record1.rootObjkey,
+                CHILD_OBJTYP: record1.childObjtyp,
+                CHILD_OBJKEY: record1.childObjkey,
+                ACTIVE: record1.active,
+                IN_SCOPE: record1.inScope
+              },
+              record2: {
+                ROOT_OBJTYP: record2.rootObjtyp,
+                ROOT_OBJKEY: record2.rootObjkey,
+                CHILD_OBJTYP: record2.childObjtyp,
+                CHILD_OBJKEY: record2.childObjkey,
+                ACTIVE: record2.active,
+                IN_SCOPE: record2.inScope
+              },
+              fields: changedFields
+            });
+          }
+
+          // Marcar como procesado en el Map
+          records2Map.delete(key);
+        }
+      }
+
+      // Los registros que quedaron en records2Map son nuevos en archivo 2
+      for (const [key, record2] of records2Map) {
+        newInSelection2++;
+        fieldChanges.push({
+          record1: null,
+          record2: {
+            ROOT_OBJTYP: record2.rootObjtyp,
+            ROOT_OBJKEY: record2.rootObjkey,
+            CHILD_OBJTYP: record2.childObjtyp,
+            CHILD_OBJKEY: record2.childObjkey,
+            ACTIVE: record2.active,
+            IN_SCOPE: record2.inScope
+          },
+          fields: {} // No hay campos para marcar porque no existe record1
+        });
+      }
+
+      return {
+        table: tableToFilter,
+        type: 'different',
+        fieldChanges,
+        stats: {
+          differences,
+          newInSelection1,
+          newInSelection2,
+          totalRecords: fieldChanges.length
+        }
+      };
+
+    } catch (error) {
+      console.error('💥 Error comparing SycloCA000G records:', error);
+      throw error;
+    }
+  }
+
+
+  // 🎯 Función principal para comparar uploads
+  async compareUploads(
+    fileName1: string,
+    uploadDate1: string,
+    fileName2: string,
+    uploadDate2: string,
+    tableFilter: string = 'all'
+  ): Promise<any[]> {
+    try {
+      // 1. Obtener los IDs de upload desde upload_tracking
+      const upload1 = await this.uploadTrackingRepository.findOne({
+        where: {
+          fileName: fileName1,
+          uploadedAt: new Date(uploadDate1)
+        }
+      });
+
+      const upload2 = await this.uploadTrackingRepository.findOne({
+        where: {
+          fileName: fileName2,
+          uploadedAt: new Date(uploadDate2)
+        }
+      });
+
+      if (!upload1) {
+        throw new BadRequestException(`Upload not found for file: ${fileName1} on date: ${uploadDate1}`);
+      }
+
+      if (!upload2) {
+        throw new BadRequestException(`Upload not found for file: ${fileName2} on date: ${uploadDate2}`);
+      }
+
+      console.log(`📊 Comparing uploads: ${upload1.id} vs ${upload2.id} for table: ${tableFilter}`);
+
+      const tableResults: any[] = [];
+      let totalRecords = 0;
+      let totalDifferences = 0;
+      let totalNewInSelection1 = 0;
+      let totalNewInSelection2 = 0;
+
+      // 2. Comparar según el filtro de tabla      
+      if (tableFilter === '/SYCLO/CA000P' || tableFilter === '/SYCLO/YCA000P') {
+        const result = await this.compareSycloCA000P(upload1.id, upload2.id, tableFilter);
+        if (result.fieldChanges.length > 0) {
+          tableResults.push(result);
+          totalRecords += result.stats.totalRecords;
+          totalDifferences += result.stats.differences;
+          totalNewInSelection1 += result.stats.newInSelection1;
+          totalNewInSelection2 += result.stats.newInSelection2;
+        }
+      } else if (tableFilter === '/SYCLO/CA000S' || tableFilter === '/SYCLO/YCA000S') {
+        const result = await this.compareSycloCA000S(upload1.id, upload2.id, tableFilter);
+        if (result.fieldChanges.length > 0) {
+          tableResults.push(result);
+          totalRecords += result.stats.totalRecords;
+          totalDifferences += result.stats.differences;
+          totalNewInSelection1 += result.stats.newInSelection1;
+          totalNewInSelection2 += result.stats.newInSelection2;
+        }
+      } else if (tableFilter === '/SYCLO/CA000G' || tableFilter === '/SYCLO/YCA000G') {
+        const result = await this.compareSycloCA000G(upload1.id, upload2.id, tableFilter);
+        if (result.fieldChanges.length > 0) {
+          tableResults.push(result);
+          totalRecords += result.stats.totalRecords;
+          totalDifferences += result.stats.differences;
+          totalNewInSelection1 += result.stats.newInSelection1;
+          totalNewInSelection2 += result.stats.newInSelection2;
+        }
+      } else if (tableFilter === '/MFND/C_ODO03' || tableFilter === '/MFND/YC_ODO03') {
+        const result = await this.compareMfndCODO03(upload1.id, upload2.id, tableFilter);
+        if (result.fieldChanges.length > 0) {
+          tableResults.push(result);
+          totalRecords += result.stats.totalRecords;
+          totalDifferences += result.stats.differences;
+          totalNewInSelection1 += result.stats.newInSelection1;
+          totalNewInSelection2 += result.stats.newInSelection2;
+        }
+      } else if (tableFilter === '/MFND/C_ODO03D' || tableFilter === '/MFND/YC_ODO03D') {
+        const result = await this.compareMfndCODO03D(upload1.id, upload2.id, tableFilter);
+        if (result.fieldChanges.length > 0) {
+          tableResults.push(result);
+          totalRecords += result.stats.totalRecords;
+          totalDifferences += result.stats.differences;
+          totalNewInSelection1 += result.stats.newInSelection1;
+          totalNewInSelection2 += result.stats.newInSelection2;
+        }
+      } else if (tableFilter === 'all') {
+        // Comparar todas las tablas implementadas - CADA UNA CON SUS VARIANTES
+        
+        // SycloCA000P - Comparar ambas variantes
+        const ca000pResult = await this.compareSycloCA000P(upload1.id, upload2.id, '/SYCLO/CA000P');
+        if (ca000pResult.fieldChanges.length > 0) {
+          tableResults.push(ca000pResult);
+          totalRecords += ca000pResult.stats.totalRecords;
+          totalDifferences += ca000pResult.stats.differences;
+          totalNewInSelection1 += ca000pResult.stats.newInSelection1;
+          totalNewInSelection2 += ca000pResult.stats.newInSelection2;
+        }
+
+        const yca000pResult = await this.compareSycloCA000P(upload1.id, upload2.id, '/SYCLO/YCA000P');
+        if (yca000pResult.fieldChanges.length > 0) {
+          tableResults.push(yca000pResult);
+          totalRecords += yca000pResult.stats.totalRecords;
+          totalDifferences += yca000pResult.stats.differences;
+          totalNewInSelection1 += yca000pResult.stats.newInSelection1;
+          totalNewInSelection2 += yca000pResult.stats.newInSelection2;
+        }
+
+        // SycloCA000S - Comparar ambas variantes
+        const ca000sResult = await this.compareSycloCA000S(upload1.id, upload2.id, '/SYCLO/CA000S');
+        if (ca000sResult.fieldChanges.length > 0) {
+          tableResults.push(ca000sResult);
+          totalRecords += ca000sResult.stats.totalRecords;
+          totalDifferences += ca000sResult.stats.differences;
+          totalNewInSelection1 += ca000sResult.stats.newInSelection1;
+          totalNewInSelection2 += ca000sResult.stats.newInSelection2;
+        }
+
+        const yca000sResult = await this.compareSycloCA000S(upload1.id, upload2.id, '/SYCLO/YCA000S');
+        if (yca000sResult.fieldChanges.length > 0) {
+          tableResults.push(yca000sResult);
+          totalRecords += yca000sResult.stats.totalRecords;
+          totalDifferences += yca000sResult.stats.differences;
+          totalNewInSelection1 += yca000sResult.stats.newInSelection1;
+          totalNewInSelection2 += yca000sResult.stats.newInSelection2;
+        }
+
+        // SycloCA000G - Comparar ambas variantes
+        const ca000gResult = await this.compareSycloCA000G(upload1.id, upload2.id, '/SYCLO/CA000G');
+        if (ca000gResult.fieldChanges.length > 0) {
+          tableResults.push(ca000gResult);
+          totalRecords += ca000gResult.stats.totalRecords;
+          totalDifferences += ca000gResult.stats.differences;
+          totalNewInSelection1 += ca000gResult.stats.newInSelection1;
+          totalNewInSelection2 += ca000gResult.stats.newInSelection2;
+        }
+
+        const yca000gResult = await this.compareSycloCA000G(upload1.id, upload2.id, '/SYCLO/YCA000G');
+        if (yca000gResult.fieldChanges.length > 0) {
+          tableResults.push(yca000gResult);
+          totalRecords += yca000gResult.stats.totalRecords;
+          totalDifferences += yca000gResult.stats.differences;
+          totalNewInSelection1 += yca000gResult.stats.newInSelection1;
+          totalNewInSelection2 += yca000gResult.stats.newInSelection2;
+        }
+
+        // MfndCODO03 - Comparar ambas variantes
+        const mfndCODO03Result = await this.compareMfndCODO03(upload1.id, upload2.id, '/MFND/C_ODO03');
+        if (mfndCODO03Result.fieldChanges.length > 0) {
+          tableResults.push(mfndCODO03Result);
+          totalRecords += mfndCODO03Result.stats.totalRecords;
+          totalDifferences += mfndCODO03Result.stats.differences;
+          totalNewInSelection1 += mfndCODO03Result.stats.newInSelection1;
+          totalNewInSelection2 += mfndCODO03Result.stats.newInSelection2;
+        }
+
+        const ymfndCODO03Result = await this.compareMfndCODO03(upload1.id, upload2.id, '/MFND/YC_ODO03');
+        if (ymfndCODO03Result.fieldChanges.length > 0) {
+          tableResults.push(ymfndCODO03Result);
+          totalRecords += ymfndCODO03Result.stats.totalRecords;
+          totalDifferences += ymfndCODO03Result.stats.differences;
+          totalNewInSelection1 += ymfndCODO03Result.stats.newInSelection1;
+          totalNewInSelection2 += ymfndCODO03Result.stats.newInSelection2;
+        }
+
+        // MfndCODO03D - Comparar ambas variantes
+        const mfndCODO03DResult = await this.compareMfndCODO03D(upload1.id, upload2.id, '/MFND/C_ODO03D');
+        if (mfndCODO03DResult.fieldChanges.length > 0) {
+          tableResults.push(mfndCODO03DResult);
+          totalRecords += mfndCODO03DResult.stats.totalRecords;
+          totalDifferences += mfndCODO03DResult.stats.differences;
+          totalNewInSelection1 += mfndCODO03DResult.stats.newInSelection1;
+          totalNewInSelection2 += mfndCODO03DResult.stats.newInSelection2;
+        }
+
+        const ymfndCODO03DResult = await this.compareMfndCODO03D(upload1.id, upload2.id, '/MFND/YC_ODO03D');
+        if (ymfndCODO03DResult.fieldChanges.length > 0) {
+          tableResults.push(ymfndCODO03DResult);
+          totalRecords += ymfndCODO03DResult.stats.totalRecords;
+          totalDifferences += ymfndCODO03DResult.stats.differences;
+          totalNewInSelection1 += ymfndCODO03DResult.stats.newInSelection1;
+          totalNewInSelection2 += ymfndCODO03DResult.stats.newInSelection2;
+        }
+      } else {
+        throw new BadRequestException(`Table filter '${tableFilter}' not supported yet`);
+      }
+
+      // 3. Construir respuesta final
+      const finalResult = [{
+        table: tableFilter,
+        totalRecords,
+        differences: totalDifferences,
+        newInSelection1: totalNewInSelection1,
+        newInSelection2: totalNewInSelection2,
+        records: tableResults
+      }];
+
+      console.log(`🎯 Comparison completed: ${totalDifferences} total differences found across ${tableResults.length} tables`);
+      
+      return finalResult;
+
+    } catch (error) {
+      console.error('💥 Error during upload comparison:', error);
+      throw new BadRequestException(`Error comparing uploads: ${error.message}`);
+    }
+  }
 }
