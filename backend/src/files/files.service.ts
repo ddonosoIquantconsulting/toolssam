@@ -961,7 +961,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
       const records2Map = new Map<string, any>();
       records2.forEach(record => {
         // Clave compuesta con todos los campos clave
-        const key = `${record.ruleNo}|${record.ruleType}|${record.rangeSign}|${record.rangeOption}|${record.ruleValue}`;
+        const key = `${record.ruleKey}|${record.ruleNo}|${record.ruleType}|${record.rangeSign}|${record.rangeOption}|${record.ruleValue}`;
         records2Map.set(key, record);
       });
 
@@ -975,6 +975,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
           newInSelection1++;
           fieldChanges.push({
             record1: {
+              RULE_KEY: record1.ruleKey,
               RULE_NO: record1.ruleNo,
               RULE_TYPE: record1.ruleType,
               RANGE_SIGN: record1.rangeSign,
@@ -1012,6 +1013,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
             // Hay diferencias entre los registros
             fieldChanges.push({
               record1: {
+                RULE_KEY: record1.ruleKey,
                 RULE_NO: record1.ruleNo,
                 RULE_TYPE: record1.ruleType,
                 RANGE_SIGN: record1.rangeSign,
@@ -1022,6 +1024,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
                 OWNER_OBJECT: record1.ownerObject
               },
               record2: {
+                RULE_KEY: record2.ruleKey,
                 RULE_NO: record2.ruleNo,
                 RULE_TYPE: record2.ruleType,
                 RANGE_SIGN: record2.rangeSign,
@@ -1047,6 +1050,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
         fieldChanges.push({
           record1: null,
           record2: {
+            RULE_KEY: record2.ruleKey,
             RULE_NO: record2.ruleNo,
             RULE_TYPE: record2.ruleType,
             RANGE_SIGN: record2.rangeSign,
