@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Filter, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, TrendingUp, TrendingDown, AlertTriangle, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { apiService } from '../../services/api';
+import * as XLSX from 'xlsx';
 
 // 🔧 PARÁMETRO PARA ALTERNAR ENTRE MOCK Y REAL
 const USE_MOCK_DATA = false; // Cambia a true para usar datos mock
@@ -168,6 +169,113 @@ const Dashboard: React.FC = () => {
   // Estado para filtro de tablas
   const [selectedTable, setSelectedTable] = useState<string>('all');
 
+  // Estados para controlar la expansión de secciones
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  // Función para descargar Excel de una tabla específica
+  const downloadTableExcel = (tableData: any) => {
+    try {
+      // Obtener campos únicos de la tabla
+      const tableFields = getTableFields(tableData);
+      
+      // Organizar registros por tipo
+      const organizedRecords = organizeRecordsByType(tableData);
+      
+      // Crear libro de trabajo
+      const workbook = XLSX.utils.book_new();
+      
+      // Función auxiliar para convertir registros a formato de hoja
+      const createSheetData = (records: any[], sheetType: 'different' | 'onlySelection1' | 'onlySelection2') => {
+        if (records.length === 0) return [tableFields]; // Solo headers si no hay datos
+        
+        const sheetData = [];
+        
+        if (sheetType === 'different') {
+          // Para diferencias, incluir una columna adicional para identificar la selección
+          const headers = [...tableFields, 'SELECCION'];
+          sheetData.push(headers);
+          
+          records.forEach(change => {
+            // Fila para Selección 1
+            const row1 = tableFields.map(field => change.record1[field] || '');
+            row1.push('SELECCION_1');
+            sheetData.push(row1);
+            
+            // Fila para Selección 2
+            const row2 = tableFields.map(field => change.record2[field] || '');
+            row2.push('SELECCION_2');
+            sheetData.push(row2);
+            
+            // Fila vacía como separador
+            sheetData.push(new Array(headers.length).fill(''));
+          });
+        } else {
+          // Para registros únicos
+          sheetData.push(tableFields);
+          
+          records.forEach(change => {
+            const record = sheetType === 'onlySelection1' ? change.record1 : change.record2;
+            const row = tableFields.map(field => record[field] || '');
+            sheetData.push(row);
+          });
+        }
+        
+        return sheetData;
+      };
+      
+      // Formatear fechas para el nombre del archivo
+      const formatDateForFilename = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0].replace(/-/g, '');
+      };
+      
+            // Limpiar nombres para el archivo (remover caracteres especiales)
+      const cleanName = (name: string) => {
+        return name.replace(/[^a-zA-Z0-9]/g, '_');
+      };
+
+      // Crear hojas
+      const diferenciasData = createSheetData(organizedRecords.different, 'different');
+      const soloSel1Data = createSheetData(organizedRecords.onlySelection1, 'onlySelection1');
+      const soloSel2Data = createSheetData(organizedRecords.onlySelection2, 'onlySelection2');
+      
+      // Convertir a hojas de Excel
+      const diferenciasSheet = XLSX.utils.aoa_to_sheet(diferenciasData);
+      const soloSel1Sheet = XLSX.utils.aoa_to_sheet(soloSel1Data);
+      const soloSel2Sheet = XLSX.utils.aoa_to_sheet(soloSel2Data);
+      
+      // Crear nombres de hojas personalizados
+      const fecha1 = formatDateForFilename(selection1Date);
+      const fecha2 = formatDateForFilename(selection2Date);
+      const sel1SheetName = `${cleanName(selection1Company)}_${cleanName(selection1Version)}_${fecha1}`;
+      const sel2SheetName = `${cleanName(selection2Company)}_${cleanName(selection2Version)}_${fecha2}`;
+      
+      // Agregar hojas al libro
+      XLSX.utils.book_append_sheet(workbook, diferenciasSheet, 'Diferencias');
+      XLSX.utils.book_append_sheet(workbook, soloSel1Sheet, sel1SheetName);
+      XLSX.utils.book_append_sheet(workbook, soloSel2Sheet, sel2SheetName);
+      
+
+
+      
+      // Crear nombre del archivo
+      // const fecha1 = formatDateForFilename(selection1Date);
+      // const fecha2 = formatDateForFilename(selection2Date);
+      const tableName = tableData.table.replace(/[\/]/g, '_'); // Reemplazar / por _
+      
+      const fileName = `${cleanName(selection1Company)}_${cleanName(selection1Version)}_${fecha1}_vs_${cleanName(selection2Company)}_${cleanName(selection2Version)}_${fecha2}_${tableName}.xlsx`;
+      
+      // Descargar archivo
+      XLSX.writeFile(workbook, fileName);
+      
+      console.log(`Excel descargado: ${fileName}`);
+      
+    } catch (error) {
+      console.error('Error al generar Excel:', error);
+      alert('Error al generar el archivo Excel. Revisa la consola para más detalles.');
+    }
+  };
+
   // Cargar datos del historial al montar el componente
   useEffect(() => {
     const loadHistory = async () => {
@@ -226,9 +334,6 @@ const Dashboard: React.FC = () => {
     setSelection1Date(date);
     setSelectedTable('all');
   };
-
-  // Estados para controlar la expansión de secciones
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   // Toggle table expansion
   const toggleTableExpansion = (tableName: string) => {
@@ -463,6 +568,7 @@ const Dashboard: React.FC = () => {
   const hasFieldDifference = (change: any, field: string) => {
     return change.fields && change.fields[field] === true;
   };
+  
   const organizeRecordsByType = (tableData: any) => {
     if (!tableData.fieldChanges) return { different: [], onlySelection1: [], onlySelection2: [] };
     
@@ -950,13 +1056,13 @@ const Dashboard: React.FC = () => {
                     
                     return (
                       <div key={tableIndex} className="border border-gray-200 rounded-lg overflow-hidden mb-6">
-                        {/* Accordion Header */}
-                        <div 
-                          className="bg-gray-50 px-4 py-3 cursor-pointer hover:bg-gray-100 transition-colors border-b border-gray-200"
-                          onClick={() => toggleTableExpansion(tableData.table)}
-                        >
+                        {/* Accordion Header con Botón de Descarga */}
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center">
+                            <div 
+                              className="flex items-center cursor-pointer hover:bg-gray-100 transition-colors rounded px-2 py-1 -mx-2"
+                              onClick={() => toggleTableExpansion(tableData.table)}
+                            >
                               {isExpanded ? (
                                 <ChevronUp className="w-5 h-5 mr-2 text-gray-500" />
                               ) : (
@@ -971,8 +1077,21 @@ const Dashboard: React.FC = () => {
                                 </div>
                               </div>
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {isExpanded ? 'Contraer' : 'Expandir'}
+                            
+                            <div className="flex items-center space-x-3">
+                              {/* Botón de Descarga Excel */}
+                              <button
+                                onClick={() => downloadTableExcel(tableData)}
+                                className="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                                title="Descargar Excel para esta tabla"
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Descargar Excel
+                              </button>
+                              
+                              <div className="text-sm text-gray-500">
+                                {isExpanded ? 'Contraer' : 'Expandir'}
+                              </div>
                             </div>
                           </div>
                         </div>
