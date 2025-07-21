@@ -82,9 +82,9 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
 }
 
  // 🔍 Función para parsear content_linea de MfndCODO03D
-  private parseMfndCODO03DLine(contentLinea: string, uploadId: string): MfndCODO03D {
+  private parseMfndCODO03DLine(contentLinea: string, uploadId: string, separador: string): MfndCODO03D {
     // Formato esperado para MFND/C_ODO03D
-    const fields = contentLinea.split(',');
+    const fields = contentLinea.split(separador);
     
     if (fields.length < 4) {
       throw new Error(`Invalid MfndCODO03D line format: ${contentLinea}`);
@@ -117,11 +117,12 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
   }
 
 // 🔍 Función para parsear content_linea de MfndCODO03
-  private parseMfndCODO03Line(contentLinea: string, uploadId: string): MfndCODO03 {
+  private parseMfndCODO03Line(contentLinea: string, uploadId: string, separador: string): MfndCODO03 {
     // Formato esperado para MFND/C_ODO03
-    const fields = contentLinea.split(',');
-    
+    const fields = contentLinea.split(separador);
+    // console.log({fields})
     if (fields.length < 4) {
+      // console.log({contentLinea})
       throw new Error(`Invalid MfndCODO03 line format: ${contentLinea}`);
     }
 
@@ -147,15 +148,15 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
     mfndEntity.changedBy = fields[16] || null;
     mfndEntity.changedTs = fields[17] || null;
     mfndEntity.uploadId = uploadId;
-
+    console.log({mfndEntity});
     return mfndEntity;
   }
 
 
  // 🔍 Función para parsear content_linea de SycloCA000G
-  private parseSycloCA000GLine(contentLinea: string, uploadId: string): SycloCA000G {
+  private parseSycloCA000GLine(contentLinea: string, uploadId: string, separador: string): SycloCA000G {
     // Formato esperado similar a otras tablas Syclo pero con campos específicos de CA000G
-    const fields = contentLinea.split(',');
+    const fields = contentLinea.split(separador);
     
     if (fields.length < 4) {
       throw new Error(`Invalid SycloCA000G line format: ${contentLinea}`);
@@ -188,9 +189,9 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
   }
 
  // 🔍 Función para parsear content_linea de SycloCA000S
-  private parseSycloCA000SLine(contentLinea: string, uploadId: string): SycloCA000S {
+  private parseSycloCA000SLine(contentLinea: string, uploadId: string, separador: string): SycloCA000S {
     // Formato esperado similar a CA000P pero con campos específicos de CA000S
-    const fields = contentLinea.split(',');
+    const fields = contentLinea.split(separador);
     
     if (fields.length < 4) {
       throw new Error(`Invalid SycloCA000S line format: ${contentLinea}`);
@@ -226,9 +227,9 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
   }
 
  // 🔍 Función para parsear content_linea de SycloCA000P
-  private parseSycloCA000PLine(contentLinea: string, uploadId: string): SycloCA000P {
+  private parseSycloCA000PLine(contentLinea: string, uploadId: string, separador: string): SycloCA000P {
     // Formato esperado: CMP,SAP_SERVICE_ASSET_MANAGER,2410,/SYCLO/CA000P,100,0000000284,WCMCatalogProfileName,ZWCM,CATALOGTYPE,0000000000,,,,X,X,,,,,,SOLTESZI,,SOLTESZI,
-    const fields = contentLinea.split(',');
+    const fields = contentLinea.split(separador);
     
     if (fields.length < 4) {
       throw new Error(`Invalid SycloCA000P line format: ${contentLinea}`);
@@ -267,7 +268,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
   }
 
 // 🎯 Función unificada para procesar IntermediateRows y crear registros en todas las tablas
-  private async processIntermediateToAllTables(uploadId: string): Promise<number> {
+  private async processIntermediateToAllTables(uploadId: string, separador: string): Promise<number> {
     try {
       // // Obtener todos los IntermediateRow que corresponden a todas las tablas procesables
       // const intermediateRows = await this.intermediateRowRepository.find({
@@ -320,35 +321,37 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
       let contador = 0;
       for (const row of intermediateRows) {
         try {
-          contador++;
-          // console.log({contador});
+ 
           if (row.table === '/SYCLO/CA000P' || row.table === '/SYCLO/YCA000P') {
             // Procesar como CA000P
-            const sycloEntity = this.parseSycloCA000PLine(row.content_linea, uploadId);
+            const sycloEntity = this.parseSycloCA000PLine(row.content_linea, uploadId, separador);
             sycloCA000PRecords.push(sycloEntity);
         
             
           } else if (row.table === '/SYCLO/CA000S' || row.table === '/SYCLO/YCA000S') {
             // Procesar como CA000S
-            const sycloEntity = this.parseSycloCA000SLine(row.content_linea, uploadId);
+            const sycloEntity = this.parseSycloCA000SLine(row.content_linea, uploadId, separador);
             sycloCA000SRecords.push(sycloEntity);
         
             
           } else if (row.table === '/SYCLO/CA000G' || row.table === '/SYCLO/YCA000G') {
             // Procesar como CA000G
-            const sycloEntity = this.parseSycloCA000GLine(row.content_linea, uploadId);
+            const sycloEntity = this.parseSycloCA000GLine(row.content_linea, uploadId, separador);
             sycloCA000GRecords.push(sycloEntity);
         
             
           } else if (row.table === '/MFND/C_ODO03' || row.table === '/MFND/YC_ODO03') {
             // Procesar como MfndCODO03
-            const mfndEntity = this.parseMfndCODO03Line(row.content_linea, uploadId);
+            contador++;
+            console.log({contador});
+            const mfndEntity = this.parseMfndCODO03Line(row.content_linea, uploadId, separador);
+            console.log({mfndEntity})
             mfndCODO03Records.push(mfndEntity);
         
             
           } else if (row.table === '/MFND/C_ODO03D' || row.table === '/MFND/YC_ODO03D') {
             // Procesar como MfndCODO03D
-            const mfndEntity = this.parseMfndCODO03DLine(row.content_linea, uploadId);
+            const mfndEntity = this.parseMfndCODO03DLine(row.content_linea, uploadId, separador);
             mfndCODO03DRecords.push(mfndEntity);
         
           }
@@ -489,7 +492,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
       }
 
       // 5. Procesar todas las tablas especiales (Syclo y MFND)
-      const specialTablesProcessed = await this.processIntermediateToAllTables(uploadTracking.id);
+      const specialTablesProcessed = await this.processIntermediateToAllTables(uploadTracking.id, separator);
 
       // 6. Actualizar estado del tracking
       uploadTracking.status = 'completed';
@@ -760,7 +763,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
       }
 
       return {
-        table: tableToFilter, // Retorna la tabla específica que se filtró
+        table: 'Parámetros ' + tableToFilter, // Retorna la tabla específica que se filtró
         type: 'different',
         fieldChanges,
         stats: {
@@ -917,7 +920,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
       }
 
       return {
-        table: tableToFilter, // Retorna la tabla específica que se filtró
+        table: 'Mobile Status ' +tableToFilter, // Retorna la tabla específica que se filtró
         type: 'different',
         fieldChanges,
         stats: {
@@ -945,13 +948,14 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
            },  // ← NUEVO FILTRO 
         order: { ruleNo: 'ASC', ruleType: 'ASC' }
       });
-
+      console.log(" largo seleccion1",  records1.length)
       // Obtener registros del archivo 2
       const records2 = await this.mfndCODO03Repository.find({
         where: { uploadId: uploadId2, table: tableToFilter },
         order: { ruleNo: 'ASC', ruleType: 'ASC' }
       });
 
+      console.log(" largo seleccion2",  records2.length)
       const fieldChanges: any[] = [];
       let newInSelection1 = 0;
       let newInSelection2 = 0;
@@ -1066,7 +1070,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
       }
 
       return {
-        table: tableToFilter,
+        table: 'Reglas/Datos oData ' + tableToFilter,
         type: 'different',
         fieldChanges,
         stats: {
@@ -1223,7 +1227,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
       }
 
       return {
-        table: tableToFilter  , //'/MFND/C_ODO03D',
+        table: 'Tablas oData (detalle) ' + tableToFilter  , //'/MFND/C_ODO03D',
         type: 'different',
         fieldChanges,
         stats: {
@@ -1353,7 +1357,7 @@ private async parseCSV(buffer: Buffer): Promise<{ data: any[], originalLines: st
       }
 
       return {
-        table: tableToFilter,
+        table: 'Componentes/Funciones ' +  tableToFilter,
         type: 'different',
         fieldChanges,
         stats: {
