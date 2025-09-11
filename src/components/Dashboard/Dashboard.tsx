@@ -222,18 +222,33 @@ const Dashboard: React.FC = () => {
         
         return sheetData;
       };
+
+      console.log("Despues de return sheetData");
       
       // Formatear fechas para el nombre del archivo
       const formatDateForFilename = (dateString: string) => {
+        console.log(dateString);
         const date = new Date(dateString);
         return date.toISOString().split('T')[0].replace(/-/g, '');
       };
+
+     const formatHoursForFilename = (dateString: string): string => {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        throw new Error('Fecha inválida');
+      }
+      const isoTime = date.toISOString().split('T')[1].replace('Z', ''); // "20:53:21.746"
+      const [hh, mm, ssMs] = isoTime.split(':');                         // ["20","53","21.746"]
+      const ss = ssMs.split('.')[0];                                     // "21"
+      return `${hh}${mm}${ss}`;                                          // "205321"
+    };
       
             // Limpiar nombres para el archivo (remover caracteres especiales)
       const cleanName = (name: string) => {
         return name.replace(/[^a-zA-Z0-9]/g, '_');
       };
 
+      console.log(" antes de crear hojas")
       // Crear hojas
       const diferenciasData = createSheetData(organizedRecords.different, 'different');
       const soloSel1Data = createSheetData(organizedRecords.onlySelection1, 'onlySelection1');
@@ -244,20 +259,26 @@ const Dashboard: React.FC = () => {
       const soloSel1Sheet = XLSX.utils.aoa_to_sheet(soloSel1Data);
       const soloSel2Sheet = XLSX.utils.aoa_to_sheet(soloSel2Data);
       
+      console.log("antes de crear nombres de hojas")
       // Crear nombres de hojas personalizados
       const fecha1 = formatDateForFilename(selection1Date);
       const fecha2 = formatDateForFilename(selection2Date);
+      const hora1 = formatHoursForFilename( selection1Date);
+      const hora2 = formatHoursForFilename( selection2Date);
       const sel1SheetName = `${cleanName(selection1Company)}_${cleanName(selection1Version)}_${fecha1}`;
-      const sel2SheetName = `${cleanName(selection2Company)}_${cleanName(selection2Version)}_${fecha2}`;
+      let sel2SheetName = `${cleanName(selection2Company)}_${cleanName(selection2Version)}_${fecha2}`;
       
+       console.log("antes de crear hohas Diferencias ");
       // Agregar hojas al libro
       XLSX.utils.book_append_sheet(workbook, diferenciasSheet, 'Diferencias');
       XLSX.utils.book_append_sheet(workbook, soloSel1Sheet, sel1SheetName);
+      console.log(soloSel2Sheet ,sel2SheetName );
+      if ( sel1SheetName === sel2SheetName ) sel2SheetName = sel2SheetName + '_' + hora2;
       XLSX.utils.book_append_sheet(workbook, soloSel2Sheet, sel2SheetName);
       
 
 
-      
+      console.log("antes de crear nombres del archivo")
       // Crear nombre del archivo
       // const fecha1 = formatDateForFilename(selection1Date);
       // const fecha2 = formatDateForFilename(selection2Date);
@@ -265,6 +286,7 @@ const Dashboard: React.FC = () => {
       
       const fileName = `${cleanName(selection1Company)}_${cleanName(selection1Version)}_${fecha1}_vs_${cleanName(selection2Company)}_${cleanName(selection2Version)}_${fecha2}_${tableName}.xlsx`;
       
+      console.log("antes de writeFile")
       // Descargar archivo
       XLSX.writeFile(workbook, fileName);
       
